@@ -19,7 +19,7 @@ Spec: user's 2026-10-25 Desktop builder request in the current Work chat.
 - [x] Test packaging on a small fixture ELF: copy, strip, tar.xz, checksum and provenance; retain original binary.
 - [x] Add runner-neutral preflight with resource/secret-presence reports and real pinned upstream fetch.
 - [x] Document local storage, remote model, production gates and D1 read-only identity audit.
-- [ ] Create public builder, push initial commit and verify actual Actions result/artifacts.
+- [x] Create public builder, push initial commit and verify actual Actions result/artifacts.
 
 ## Review focus
 Fail closed for wrong upstream SHA, dirty or uninitialized sources, nonempty unapplied overlays, missing credentials, unsafe package destinations, and false production/runtime claims.
@@ -28,3 +28,5 @@ Fail closed for wrong upstream SHA, dirty or uninitialized sources, nonempty una
 User explicitly authorized automatic local implementation, repository creation, initial commits/push and preflight. Interactive CLI authorization is the only expected human gate. Stage implementation outside the materialized D0 checkout.
 
 Ruling: the supplied task authorizes direct execution and initial publication; no additional plan-approval pause. CLI device authorization completed by user. Production credentials are not present locally and are not required for a truthful preflight. Full production build and clean source exporter remain explicit future gates.
+
+Verified: 8 tests pass locally and in Actions. Initial preflight run 40188365538 passed; downloaded artifact confirms exact upstream SHA, zero overlays, absent production secrets and no full build.
