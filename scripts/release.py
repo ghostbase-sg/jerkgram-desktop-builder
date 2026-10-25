@@ -17,7 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 def check_configuration(out):
     out = Path(out)
     cache = (out/'CMakeCache.txt').read_text()
-    for name,value in {'DESKTOP_APP_DISABLE_AUTOUPDATE':'ON','DESKTOP_APP_USE_PACKAGED':'OFF'}.items():
+    for name,value in {'DESKTOP_APP_DISABLE_AUTOUPDATE':'ON'}.items():
         if not re.search(r'^'+name+r':BOOL='+value+r'$',cache,re.M):
             raise ValueError('Required build setting is missing: '+name)
     generated=(out/'CMakeFiles/impl-Release.ninja').read_text()
@@ -32,6 +32,9 @@ def check_configuration(out):
         raise ValueError('Effective Release LTO flags are absent')
     if not lto or lto[-1]!='-flto=1' or '--param=lto-max-streaming-parallelism=1' not in flags:
         raise ValueError('Final LTO concurrency is not bounded to one')
+    for name in ('Core', 'Gui', 'Widgets'):
+        if 'libQt6'+name+'.a' not in edge:
+            raise ValueError('Expected static Qt library is absent: '+name)
     return True
 
 
@@ -88,7 +91,7 @@ def run(source, evidence, image='tdesktop:centos_env', jobs=2, configure_only=Fa
     start=time.time()
     stream_run(args+[command],evidence/'configure.log',values)
     check_configuration(source/'out')
-    (evidence/'config-verified.json').write_text(json.dumps({'upstream':expected,'image_id':image_id,'config_sha256':identity.sha(ROOT/'D1_CONFIG.json'),'configuration':'Release','updater_disabled':True,'lto_workers':1},indent=2)+'\n')
+    (evidence/'config-verified.json').write_text(json.dumps({'upstream':expected,'image_id':image_id,'config_sha256':identity.sha(ROOT/'D1_CONFIG.json'),'configuration':'Release','updater_disabled':True,'lto_workers':1,'qt_linkage':'static Core/Gui/Widgets verified in generated edge','requested_cmake':config['cmake']},indent=2)+'\n')
     if configure_only:return
     stop=threading.Event();summary={}
     thread=threading.Thread(target=monitor,args=(stop,evidence/'memory.jsonl',summary),daemon=True)
