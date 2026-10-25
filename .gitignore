@@ -1,0 +1,13 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+.env.*
+secrets/
+credentials/
+reports/
+artifacts/
+work/
+out/
+*.tar.xz
+*.AppImage

@@ -1,0 +1,47 @@
+name: Linux builder preflight
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      runner_json:
+        description: 'JSON runner label or labels; e.g. "ubuntu-24.04" or ["self-hosted","linux","x64"]'
+        required: false
+        type: string
+permissions:
+  contents: read
+concurrency:
+  group: preflight-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  preflight:
+    runs-on: ${{ fromJSON(inputs.runner_json || vars.PREFLIGHT_RUNNER_JSON || '"ubuntu-24.04"') }}
+    timeout-minutes: 25
+    steps:
+      - name: Checkout builder
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Structure and resource report
+        env:
+          TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
+          TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
+        run: python3 scripts/preflight.py --output reports
+      - name: Builder tests (small fixture ELF only)
+        run: python3 -m unittest discover -s tests -v
+      - name: Fetch and verify pinned upstream (no submodule downloads or build)
+        shell: bash
+        run: |
+          set -euo pipefail
+          source_dir="$RUNNER_TEMP/jerkgram-preflight-source"
+          python3 scripts/builder.py prepare --source "$source_dir" --skip-submodules 2>&1 | tee reports/upstream-fetch.log
+          python3 scripts/builder.py materialize --source "$source_dir" --skip-submodules | tee reports/materialization.json
+          git -C "$source_dir" rev-parse HEAD > reports/verified-upstream-sha.txt
+      - name: Preserve preflight evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: linux-preflight-${{ github.run_id }}
+          path: reports/
+          if-no-files-found: error
+          retention-days: 14
