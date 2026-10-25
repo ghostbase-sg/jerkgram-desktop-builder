@@ -1,0 +1,301 @@
+{
+  "schema": 1,
+  "upstream_commit": "6fed91ffab9861771a75f29df65031b3c80b6941",
+  "version": "0.1.0-alpha.1",
+  "identity": {
+    "name": "Jerkgram",
+    "long_name": "Jerkgram Desktop",
+    "executable": "Jerkgram",
+    "qt_name": "JerkgramDesktop",
+    "desktop_id": "com.jerkgram.desktop",
+    "portable": "JerkgramForcePortable"
+  },
+  "cmake": {
+    "DESKTOP_APP_DISABLE_AUTOUPDATE": "ON",
+    "DESKTOP_APP_DISABLE_CRASH_REPORTS": "ON",
+    "DESKTOP_APP_USE_PACKAGED": "OFF"
+  },
+  "release_link_flags": "-flto=1 --param=lto-max-streaming-parallelism=1",
+  "patches": [
+    {
+      "path": "patches/0001-linux-identity.patch",
+      "sha256": "75c1259493a031bbe5aedced63c2b850a2f88d123476017958e7bf8c241564aa"
+    },
+    {
+      "path": "patches/0002-profile-isolation.patch",
+      "sha256": "37737061a3461689ce1705270e61e8cf7fcf36d3a5f8be1fede821a3390ade8d"
+    },
+    {
+      "path": "patches/0003-product-surfaces.patch",
+      "sha256": "96e7f72ae8c9cdfa870dbbeece6c6e303aa438c95cf6e2a66652fe844514cfa7"
+    },
+    {
+      "path": "patches/0004-integration-policy.patch",
+      "sha256": "9e77dcc96398a3a0c31600a1f1f96adcff977f03f626534414bc4e50a8633396"
+    }
+  ],
+  "payloads": [
+    {
+      "path": "payloads/linux-identity/com.jerkgram.desktop.desktop",
+      "target": "lib/xdg/com.jerkgram.desktop.desktop",
+      "sha256": "28bed20f5d7ef1a6ec6567c2d055a1dbbb28aa2bffc8ef7ee091ed0123ab0c38"
+    },
+    {
+      "path": "payloads/linux-identity/com.jerkgram.desktop.service",
+      "target": "lib/xdg/com.jerkgram.desktop.service",
+      "sha256": "46c4e88b347b411313223fc24c574f8e8a6e2028e2835300ef7abfd92b931112"
+    },
+    {
+      "path": "payloads/linux-identity/com.jerkgram.desktop.metainfo.xml",
+      "target": "lib/xdg/com.jerkgram.desktop.metainfo.xml",
+      "sha256": "e608e00419f5e64d853b88486b99f99406c60a3529d5d87629bc89f420265612"
+    },
+    {
+      "path": "payloads/linux-identity/jerkgram_identity.h",
+      "target": "Telegram/SourceFiles/core/jerkgram_identity.h",
+      "sha256": "25719147add3243a63a0b4aeb14bd6050fba448f04b87db40e9aed652300c7d3"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon128.png",
+      "target": "Telegram/Resources/art/icon128.png",
+      "sha256": "944765971061408813d286d17ef29198d592a57ee2bf1eb66d195d7beb6e0038"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon128@2x.png",
+      "target": "Telegram/Resources/art/icon128@2x.png",
+      "sha256": "5403c4ed3f89ca65d12d8d129d4adbaa97e7945afe8937298d3140d1ca67e898"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon16.png",
+      "target": "Telegram/Resources/art/icon16.png",
+      "sha256": "564ebec65ea4270fcf4d5bf5ef1f88fb5fbda842c0895ff75b2ab418b5d05d41"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon16@2x.png",
+      "target": "Telegram/Resources/art/icon16@2x.png",
+      "sha256": "e23417bdfbb0e76b3f672776dadaf6e55d167e84d55865ff86aea98643057a90"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon256.png",
+      "target": "Telegram/Resources/art/icon256.png",
+      "sha256": "5403c4ed3f89ca65d12d8d129d4adbaa97e7945afe8937298d3140d1ca67e898"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon256@2x.png",
+      "target": "Telegram/Resources/art/icon256@2x.png",
+      "sha256": "6d59ed80f947fbad97ca83b78d9201c2392eca6713a16ec247868c4701ce124b"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon32.png",
+      "target": "Telegram/Resources/art/icon32.png",
+      "sha256": "e23417bdfbb0e76b3f672776dadaf6e55d167e84d55865ff86aea98643057a90"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon32@2x.png",
+      "target": "Telegram/Resources/art/icon32@2x.png",
+      "sha256": "a198a95372c527de8512002df7a577fbec798dde06b143971ce0be13d83418c7"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon48.png",
+      "target": "Telegram/Resources/art/icon48.png",
+      "sha256": "dd558e771a68944cb87c5dae7e0e667c63bde1d9334176a2d1f33559e6805f22"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon48@2x.png",
+      "target": "Telegram/Resources/art/icon48@2x.png",
+      "sha256": "aabb2dccbe99def383315de70ae6903a216445c9caa502e83a6fca6468ee83a6"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon512.png",
+      "target": "Telegram/Resources/art/icon512.png",
+      "sha256": "6d59ed80f947fbad97ca83b78d9201c2392eca6713a16ec247868c4701ce124b"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon512@2x.png",
+      "target": "Telegram/Resources/art/icon512@2x.png",
+      "sha256": "3f433f1ad022d70b78277a0028bdd4f0ec93144b3d8494d30a2dbe34e7b11e4c"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon64.png",
+      "target": "Telegram/Resources/art/icon64.png",
+      "sha256": "a198a95372c527de8512002df7a577fbec798dde06b143971ce0be13d83418c7"
+    },
+    {
+      "path": "payloads/linux-identity/generated/icon64@2x.png",
+      "target": "Telegram/Resources/art/icon64@2x.png",
+      "sha256": "944765971061408813d286d17ef29198d592a57ee2bf1eb66d195d7beb6e0038"
+    },
+    {
+      "path": "payloads/linux-identity/generated/logo_256.png",
+      "target": "Telegram/Resources/art/logo_256.png",
+      "sha256": "5403c4ed3f89ca65d12d8d129d4adbaa97e7945afe8937298d3140d1ca67e898"
+    },
+    {
+      "path": "payloads/linux-identity/generated/logo_256_no_margin.png",
+      "target": "Telegram/Resources/art/logo_256_no_margin.png",
+      "sha256": "cafbee6bec7ff9b33fb7d2349b452240b4344d280cd45d2d7d3fe261d0d9c011"
+    },
+    {
+      "path": "payloads/linux-identity/generated/tray_monochrome.svg",
+      "target": "Telegram/Resources/icons/tray_monochrome.svg",
+      "sha256": "e4320eb6995b4450b7ea8487a1b88830509897e43fe8042cbcf4f60172595843"
+    },
+    {
+      "path": "payloads/linux-identity/generated/tray_monochrome_attention.svg",
+      "target": "Telegram/Resources/icons/tray_monochrome_attention.svg",
+      "sha256": "4f2e36c44f6cc64d907775ecc9f00f3d4bf630b3bf58ab8872eaf7531cd2c69a"
+    },
+    {
+      "path": "payloads/linux-identity/generated/tray_monochrome_mute.svg",
+      "target": "Telegram/Resources/icons/tray_monochrome_mute.svg",
+      "sha256": "cac63615d771c09b89a3547635f3fedd6afa526be45ca309389fba06f5541f17"
+    }
+  ],
+  "files": {
+    "Telegram/CMakeLists.txt": {
+      "before": "5c8227022e5ff8e629f65515d9faa0197b0571db6413c5168bd0c8fec811775b",
+      "after": "f12be57e287c1bc55042898aade069954dad0ab49195af59f69e615a26fa2983"
+    },
+    "Telegram/Resources/art/icon128.png": {
+      "before": "731431e47a5bc91c697d25c3a54fe7ba004752f5b66e0f282c47588ff7a314e6",
+      "after": "944765971061408813d286d17ef29198d592a57ee2bf1eb66d195d7beb6e0038"
+    },
+    "Telegram/Resources/art/icon128@2x.png": {
+      "before": "a6e26ac151cea4bf7642ce5ffcfed1dfec938a0c2db2ce26626adb4b14880b9c",
+      "after": "5403c4ed3f89ca65d12d8d129d4adbaa97e7945afe8937298d3140d1ca67e898"
+    },
+    "Telegram/Resources/art/icon16.png": {
+      "before": "ea1f36152b143cc2664daef5026656d55be2230ed42d43628e17ef7d2fff718c",
+      "after": "564ebec65ea4270fcf4d5bf5ef1f88fb5fbda842c0895ff75b2ab418b5d05d41"
+    },
+    "Telegram/Resources/art/icon16@2x.png": {
+      "before": "beecd061f6df3a63a8165bcac0b4acc322f5d096f1439c06e812225cfa3e23ae",
+      "after": "e23417bdfbb0e76b3f672776dadaf6e55d167e84d55865ff86aea98643057a90"
+    },
+    "Telegram/Resources/art/icon256.png": {
+      "before": "3fb1400c7dc9bbc3b5cb3ffedcbf4a9b09c53e28b57a7ff33a8a6b9048864090",
+      "after": "5403c4ed3f89ca65d12d8d129d4adbaa97e7945afe8937298d3140d1ca67e898"
+    },
+    "Telegram/Resources/art/icon256@2x.png": {
+      "before": "c395c36446e752513c3bba8a31da3a0bfd130440be2b71e6c3fa5ea05ffbd7ce",
+      "after": "6d59ed80f947fbad97ca83b78d9201c2392eca6713a16ec247868c4701ce124b"
+    },
+    "Telegram/Resources/art/icon32.png": {
+      "before": "9e4180c78c895783b4559c5e1a7868a2c9aa30a29969fe5dbe9a4ce4cf5cde6c",
+      "after": "e23417bdfbb0e76b3f672776dadaf6e55d167e84d55865ff86aea98643057a90"
+    },
+    "Telegram/Resources/art/icon32@2x.png": {
+      "before": "a67e2b8375e8ef28655f8772a85013ce637124971c0307d9d04497233cac400a",
+      "after": "a198a95372c527de8512002df7a577fbec798dde06b143971ce0be13d83418c7"
+    },
+    "Telegram/Resources/art/icon48.png": {
+      "before": "041b78681a35f07c3c929662fc66b6592c88588dc7297a5394ef7f923f2118e2",
+      "after": "dd558e771a68944cb87c5dae7e0e667c63bde1d9334176a2d1f33559e6805f22"
+    },
+    "Telegram/Resources/art/icon48@2x.png": {
+      "before": "2f7c026037ddfe12ecd3567f296aa6cbfb98a3c7f278798a9eca5f434f2893f7",
+      "after": "aabb2dccbe99def383315de70ae6903a216445c9caa502e83a6fca6468ee83a6"
+    },
+    "Telegram/Resources/art/icon512.png": {
+      "before": "e297771c75bd2f81d637a3234f83568be62092f67d16946be23895fa92fa7119",
+      "after": "6d59ed80f947fbad97ca83b78d9201c2392eca6713a16ec247868c4701ce124b"
+    },
+    "Telegram/Resources/art/icon512@2x.png": {
+      "before": "286fbd6f210511daf5e7d26b62784d5d6abe575d72863b45c409f4e57b93db5d",
+      "after": "3f433f1ad022d70b78277a0028bdd4f0ec93144b3d8494d30a2dbe34e7b11e4c"
+    },
+    "Telegram/Resources/art/icon64.png": {
+      "before": "554dff9f55697d4e8ec69e9aa53678aa5dae3e91aa13adc3b115526d8d51dfc9",
+      "after": "a198a95372c527de8512002df7a577fbec798dde06b143971ce0be13d83418c7"
+    },
+    "Telegram/Resources/art/icon64@2x.png": {
+      "before": "3072dec3872444fc3c1b8d7900205d3867e2fa312bb7084ac4f820a1ca518b78",
+      "after": "944765971061408813d286d17ef29198d592a57ee2bf1eb66d195d7beb6e0038"
+    },
+    "Telegram/Resources/art/logo_256.png": {
+      "before": "3fb1400c7dc9bbc3b5cb3ffedcbf4a9b09c53e28b57a7ff33a8a6b9048864090",
+      "after": "5403c4ed3f89ca65d12d8d129d4adbaa97e7945afe8937298d3140d1ca67e898"
+    },
+    "Telegram/Resources/art/logo_256_no_margin.png": {
+      "before": "44af9a76a532559ef8cb450b48096713be819103ab79a19d7e4abb9b32ff4cb7",
+      "after": "cafbee6bec7ff9b33fb7d2349b452240b4344d280cd45d2d7d3fe261d0d9c011"
+    },
+    "Telegram/Resources/icons/tray_monochrome.svg": {
+      "before": "a93380f2c7e6aae4d5fde8940020bd966e97ad8c4880f45c016edfef3f5193e1",
+      "after": "e4320eb6995b4450b7ea8487a1b88830509897e43fe8042cbcf4f60172595843"
+    },
+    "Telegram/Resources/icons/tray_monochrome_attention.svg": {
+      "before": "2b67ee19839dbbb9f57f2d7433fd6dc1059634d6d081c5e4c422c14f53fcfcc7",
+      "after": "4f2e36c44f6cc64d907775ecc9f00f3d4bf630b3bf58ab8872eaf7531cd2c69a"
+    },
+    "Telegram/Resources/icons/tray_monochrome_mute.svg": {
+      "before": "efa1439bd60b58db7b755f5d21be854ea686a0e1e2f1aa6e43bf35c083ee72fc",
+      "after": "cac63615d771c09b89a3547635f3fedd6afa526be45ca309389fba06f5541f17"
+    },
+    "Telegram/Resources/qrc/telegram/telegram.qrc": {
+      "before": "5c48a7b0a30557191ba3e6895cc16e20b189f1f6b859fbef6a72ac8b0d92db47",
+      "after": "6f5c3b92e83b9a71016c8ff951ae0c14491c0f928ef982e4f085ee3da44b47e6"
+    },
+    "Telegram/SourceFiles/boxes/about_box.cpp": {
+      "before": "f74e42bfb5593973de04340810e1ed31cb445c3bcf921a8b94d816db3af4dba3",
+      "after": "b66002ff51b31c1745428781e58553be09b1df84942ab630e69b89b93099169e"
+    },
+    "Telegram/SourceFiles/core/application.cpp": {
+      "before": "ed62aa37c7346191678469defd6885bd2c39b16ef7e7e313cde72f18a8c1bf63",
+      "after": "7e4341a3342bc564afe7281a05cab704ff3b98b26db0a4360a8a57409298f02c"
+    },
+    "Telegram/SourceFiles/core/jerkgram_identity.h": {
+      "before": null,
+      "after": "25719147add3243a63a0b4aeb14bd6050fba448f04b87db40e9aed652300c7d3"
+    },
+    "Telegram/SourceFiles/core/launcher.cpp": {
+      "before": "a3c212674bc900d48fe6d97340b9f74c62f0af4f1d342fea602f6f6e74336f1c",
+      "after": "501ef58628aa4e212915704decef92eb60b01d1c88ff2d9d4c201f94bb3cece6"
+    },
+    "Telegram/SourceFiles/core/update_checker.cpp": {
+      "before": "8dcdc9c4802c1c4ec0ce0cdfebf6593030e1f3841424e5b0c45b9165f1027b83",
+      "after": "df0287f7a92c6fbb009742d42897d56f6a4f4b23790565546902c623bf940379"
+    },
+    "Telegram/SourceFiles/core/version.h": {
+      "before": "44c2df3f5f1aa6fb36e41a58407907fcea791cb567a892b1b8ced6a116ae68d4",
+      "after": "cf5f32f7b45c4c88aadf5e0ebebd8a786e244b4a35535f9cf0c86c203d11d056"
+    },
+    "Telegram/SourceFiles/intro/intro_start.cpp": {
+      "before": "f440e53b518fe67b9febdaba5b52b0d2e6bcb16349630d985f1bfd2a0ce87d3e",
+      "after": "c78c35df731b120c40a3d31940b175e3bc5fefe3d7420123a73529a7a9b258b2"
+    },
+    "Telegram/SourceFiles/logs.cpp": {
+      "before": "a2a360c9ddef147c490e14c2d744a5815605545e6b6a6b0357b4eaa81f39e668",
+      "after": "ffc0c5d6d2cdfedb518b0d0fc66f8c503387a299c31010296f51b7179dfeae0a"
+    },
+    "Telegram/SourceFiles/platform/linux/main_window_linux.cpp": {
+      "before": "56c1391f3af4f7532143dedc3305174244c4f66e1e788edd4b5175b2c84fb4e6",
+      "after": "004063dcebdde2b3c7458db8a70a32531449cbeece43494e9e67a37a812bf90a"
+    },
+    "Telegram/SourceFiles/platform/linux/specific_linux.cpp": {
+      "before": "be28e30480cfb8c3ec1356bbe87abffbc5aaf4cdecadcd8a60c514c537a0e8a1",
+      "after": "a47ea30b9ee63aacc8f27f036b3b01827acf8b5028659f5d831bae58eb4a3dfa"
+    },
+    "Telegram/SourceFiles/window/main_window.cpp": {
+      "before": "e21ace3db79b29e24d367d8da0f6a24b754fc7e7cd8801b082b12a2b59e21548",
+      "after": "39ceaed21be1fc40fb34a99b3320bf306d3c9f8dda0986b4c262df19d56b7999"
+    },
+    "Telegram/SourceFiles/window/window_main_menu.cpp": {
+      "before": "a159c4077bb385cd807cc8ab4b7368149f6e9aa09b10071922e63917bea583b4",
+      "after": "93ce9cca809a6562575ce4d24b6cb34c4a22f3183aa77deb45b62a63e66b074f"
+    },
+    "lib/xdg/com.jerkgram.desktop.desktop": {
+      "before": null,
+      "after": "28bed20f5d7ef1a6ec6567c2d055a1dbbb28aa2bffc8ef7ee091ed0123ab0c38"
+    },
+    "lib/xdg/com.jerkgram.desktop.metainfo.xml": {
+      "before": null,
+      "after": "e608e00419f5e64d853b88486b99f99406c60a3529d5d87629bc89f420265612"
+    },
+    "lib/xdg/com.jerkgram.desktop.service": {
+      "before": null,
+      "after": "46c4e88b347b411313223fc24c574f8e8a6e2028e2835300ef7abfd92b931112"
+    }
+  },
+  "lto_policy": "Image-provided compile LTO; verified generated Release flags; final link one worker"
+}

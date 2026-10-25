@@ -63,3 +63,15 @@ Packaging does not assert compile/runtime evidence. The manifest records upstrea
 - Keep upstream tracked `AGENTS.md` intact; local source instructions belong in ignored `AGENTS.override.md`.
 - Preserve the expensive D0 source/build state and Docker image: [storage policy](docs/storage.md).
 - Next milestone starts with the [D1 focused read-only identity audit](docs/d1-audit.md), not automatic product edits.
+
+## D1B identity alpha (implementation in progress)
+
+The D1 overlay is defined by `D1_CONFIG.json`, ordered `patches/series`, hashed payloads and `JERKGRAM_VERSION`. Read `docs/d1-audit.md` and `docs/d1b-progress.md` for ownership, scope and actual evidence. D1 completion requires Release compile and runtime coexistence; unit tests are not that proof.
+
+Use a separate pinned checkout without an existing `out` for initial materialization. Never target the protected D0 checkout. `python3 scripts/builder.py materialize --source PATH` accepts pristine pinned input or verifies the exact previously materialized output; mismatched/partial overlays fail closed. `verify-source` reports the verified state. Generated build output is allowed only under `out`; unexpected ignored source inputs are rejected.
+
+Approved Linux branding is `JerkgramGlassReveal.icon`; canonical source vectors/recipe and approval provenance live in `payloads/linux-identity/master`. Derivatives are committed and hash checked. Regenerate with `python3 scripts/generate_linux_icons.py` (librsvg `rsvg-convert` required), and generate presentation header with `python3 scripts/generate_identity_header.py`. Review/update manifest hashes after intentional changes; never accept unverified payload drift.
+
+The existing preflight workflow has a separately gated, manual `d1_release` mode for the explicitly authorized one-job laptop runner. It runs source/tests/config checks before compiling. Actions Secrets are forwarded only as environment variables. Release updater is explicitly disabled, effective LTO is verified from generated flags, and link concurrency is one worker. No public PR triggers the local runner.
+
+`python3 scripts/package_release.py --source PATH --evidence PATH --output NEW_PATH` requires matching compile/config evidence. It strips a copy, packages only explicit own assets/notices and produces SHA256/provenance. No Updater/Packer/profile/credential/build-log packaging. Optional user-local integration is explicit via the packaged `install_linux.py`; it does not set default URL handlers.

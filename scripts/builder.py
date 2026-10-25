@@ -11,6 +11,7 @@ import subprocess
 import sys
 import tarfile
 import tempfile
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -59,6 +60,9 @@ def prepare(source, repository, tag, expected, submodules=True):
 
 
 def overlay(root):
+    if (root / 'D1_CONFIG.json').exists():
+        import identity
+        return sorted(identity.load(root, pin(root)['commit'])['files'])
     series = [line.strip() for line in (root / 'patches/series').read_text().splitlines()
               if line.strip() and not line.lstrip().startswith('#')]
     payloads = json.loads((root / 'payloads/manifest.json').read_text())
@@ -68,6 +72,9 @@ def overlay(root):
 
 
 def materialize(source, expected, root=ROOT, submodules=True):
+    if (root / 'D1_CONFIG.json').exists():
+        import identity
+        return identity.materialize(source, expected, root, submodules)
     verify_source(source, expected, submodules)
     changes = overlay(root)
     verify_source(source, expected, submodules)
@@ -89,8 +96,12 @@ def redact(line, secrets):
     return line
 
 
-def build_release(source, expected, image, jobs):
-    materialize(source, expected)
+def build_release(source, expected, image, jobs, root=ROOT):
+    if (root / 'D1_CONFIG.json').exists():
+        from release import run
+        run(source, Path(source).parent / 'd1-evidence', image, jobs)
+        return Path(source).resolve() / 'out/Release/Jerkgram'
+    materialize(source, expected, root)
     secrets = credentials(os.environ)
     if jobs < 1:
         raise ValueError('Build jobs must be positive')
@@ -120,6 +131,8 @@ def sha256(path):
 
 
 def package(binary, output, source, expected, version, root=ROOT):
+    if (root / 'D1_CONFIG.json').exists():
+        raise ValueError('Use scripts/package_release.py with verified D1 build evidence')
     verify_source(source, expected)
     overlay(root)
     source, binary, output = Path(source).resolve(), Path(binary).resolve(), Path(output).resolve()
@@ -177,7 +190,7 @@ def validate():
         raise ValueError('Missing builder files: ' + ', '.join(missing))
     pin()
     overlay(ROOT)
-    print('Builder structure and zero-change overlay are valid')
+    print('Builder structure and declared overlay hashes are valid')
 
 
 def main():
@@ -204,8 +217,13 @@ def main():
         prepare(args.source, value['repository'], value['tag'], value['commit'], not args.skip_submodules)
         print('Pinned checkout verified; submodules checked:', not args.skip_submodules)
     elif args.action == 'verify-source':
-        verify_source(args.source, value['commit'], not args.skip_submodules)
-        print('Source identity and cleanliness verified; submodules checked:', not args.skip_submodules)
+        if (ROOT / 'D1_CONFIG.json').exists():
+            import identity
+            state = identity.verify(args.source, value['commit'], ROOT, not args.skip_submodules)
+            print('Verified source state:', state)
+        else:
+            verify_source(args.source, value['commit'], not args.skip_submodules)
+            print('Source identity and cleanliness verified; submodules checked:', not args.skip_submodules)
     elif args.action == 'materialize':
         print(json.dumps({'product_changes': materialize(args.source, value['commit'], submodules=not args.skip_submodules)}))
     elif args.action == 'build-release':

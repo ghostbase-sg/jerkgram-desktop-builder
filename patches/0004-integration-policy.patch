@@ -1,0 +1,154 @@
+diff --git a/Telegram/Resources/qrc/telegram/telegram.qrc b/Telegram/Resources/qrc/telegram/telegram.qrc
+index 6c966a1..d8ce79a 100644
+--- a/Telegram/Resources/qrc/telegram/telegram.qrc
++++ b/Telegram/Resources/qrc/telegram/telegram.qrc
+@@ -87,6 +87,6 @@
+   </qresource>
+   <qresource prefix="/misc">
+     <file alias="default_shortcuts-custom.json">../../default_shortcuts-custom.json</file>
+-    <file alias="org.telegram.desktop.desktop">../../../../lib/xdg/org.telegram.desktop.desktop</file>
++    <file alias="com.jerkgram.desktop.desktop">../../../../lib/xdg/com.jerkgram.desktop.desktop</file>
+   </qresource>
+ </RCC>
+diff --git a/Telegram/SourceFiles/boxes/about_box.cpp b/Telegram/SourceFiles/boxes/about_box.cpp
+index d42ad37..eaff288 100644
+--- a/Telegram/SourceFiles/boxes/about_box.cpp
++++ b/Telegram/SourceFiles/boxes/about_box.cpp
+@@ -84,35 +84,8 @@ void AboutBox(not_null<Ui::GenericBox*> box) {
+ 			st::boxRowPadding.right(),
+ 			st::boxRowPadding.bottom()));
+ 	version->setClickedCallback([=] {
+-		if (cRealAlphaVersion()) {
+-			auto url = u"https://tdesktop.com/"_q;
+-			if (Platform::IsWindows32Bit()) {
+-				url += u"win/%1.zip"_q;
+-			} else if (Platform::IsWindows64Bit()) {
+-				url += u"win64/%1.zip"_q;
+-			} else if (Platform::IsWindowsARM64()) {
+-				url += u"winarm/%1.zip"_q;
+-			} else if (Platform::IsMac()) {
+-				url += u"mac/%1.zip"_q;
+-			} else if (Platform::IsLinux()) {
+-				url += u"linux/%1.tar.xz"_q;
+-			} else {
+-				Unexpected("Platform value.");
+-			}
+-			url = url.arg(u"talpha%1_%2"_q
+-				.arg(cRealAlphaVersion())
+-				.arg(Core::countAlphaVersionSignature(cRealAlphaVersion())));
+-
+-			QGuiApplication::clipboard()->setText(url);
+-
+-			box->getDelegate()->show(
+-				Ui::MakeInformBox(
+-					"The link to the current private alpha "
+-					"version of Telegram Desktop was copied "
+-					"to the clipboard."));
+-		} else {
+-			File::OpenUrl(Core::App().changelogLink());
+-		}
++		box->getDelegate()->show(Ui::MakeInformBox(
++			u"Jerkgram alpha uses manual releases.\nBased on Telegram Desktop 7.3.1"_q));
+ 	});
+ 
+ 	layout->add(object_ptr<Ui::FlatLabel>(
+diff --git a/Telegram/SourceFiles/core/application.cpp b/Telegram/SourceFiles/core/application.cpp
+index 7a309ac..2c914aa 100644
+--- a/Telegram/SourceFiles/core/application.cpp
++++ b/Telegram/SourceFiles/core/application.cpp
+@@ -322,7 +322,7 @@ void Application::run() {
+ 	refreshGlobalProxy(); // Depends on app settings being read.
+ 
+ 	if (const auto old = Local::oldSettingsVersion(); old < AppVersion) {
+-		autoRegisterUrlScheme();
++		// Jerkgram URL-default registration requires an explicit user action.
+ 		Platform::NewVersionLaunched(old);
+ 	}
+ 
+diff --git a/Telegram/SourceFiles/core/update_checker.cpp b/Telegram/SourceFiles/core/update_checker.cpp
+index 73eee14..0485577 100644
+--- a/Telegram/SourceFiles/core/update_checker.cpp
++++ b/Telegram/SourceFiles/core/update_checker.cpp
+@@ -2176,21 +2176,8 @@ bool checkReadyUpdate() {
+ 
+ void UpdateApplication() {
+ 	if (UpdaterDisabled()) {
+-		const auto url = [&] {
+-#ifdef OS_WIN_STORE
+-			return "https://www.microsoft.com/en-us/store/p/telegram-desktop/9nztwsqntd0s";
+-#elif defined OS_MAC_STORE // OS_WIN_STORE
+-			return "https://itunes.apple.com/ae/app/telegram-desktop/id946399090";
+-#else // OS_WIN_STORE || OS_MAC_STORE
+-			if (KSandbox::isFlatpak()) {
+-				return "https://flathub.org/apps/details/org.telegram.desktop";
+-			} else if (KSandbox::isSnap()) {
+-				return "https://snapcraft.io/telegram-desktop";
+-			}
+-			return "https://desktop.telegram.org";
+-#endif // OS_WIN_STORE || OS_MAC_STORE
+-		}();
+-		UrlClickHandler::Open(url);
++		// Jerkgram alpha is distributed manually; no owned update URL yet.
++		return;
+ 	} else {
+ 		cSetAutoUpdate(true);
+ 		const auto window = Core::IsAppLaunched()
+diff --git a/Telegram/SourceFiles/platform/linux/specific_linux.cpp b/Telegram/SourceFiles/platform/linux/specific_linux.cpp
+index fa412e9..537e2e9 100644
+--- a/Telegram/SourceFiles/platform/linux/specific_linux.cpp
++++ b/Telegram/SourceFiles/platform/linux/specific_linux.cpp
+@@ -233,7 +233,7 @@ bool GenerateDesktopFile(
+ 	DEBUG_LOG(("App Info: placing .desktop file to %1").arg(targetPath));
+ 	if (!QDir(targetPath).exists()) QDir().mkpath(targetPath);
+ 
+-	const auto sourceFile = u":/misc/org.telegram.desktop.desktop"_q;
++	const auto sourceFile = u":/misc/com.jerkgram.desktop.desktop"_q;
+ 	const auto targetFile = targetPath
+ 		+ QGuiApplication::desktopFileName()
+ 		+ u".desktop"_q;
+@@ -670,16 +670,6 @@ bool SkipTaskbarSupported() {
+ }
+ 
+ QString ExecutablePathForShortcuts() {
+-	if (Core::UpdaterDisabled()) {
+-		const auto &arguments = Core::Launcher::Instance().arguments();
+-		if (!arguments.isEmpty()) {
+-			const auto result = QFileInfo(arguments.first()).fileName();
+-			if (!result.isEmpty()) {
+-				return result;
+-			}
+-		}
+-		return cExeName();
+-	}
+ 	return cExeDir() + cExeName();
+ }
+ 
+diff --git a/Telegram/SourceFiles/window/window_main_menu.cpp b/Telegram/SourceFiles/window/window_main_menu.cpp
+index 8961936..3d0cf29 100644
+--- a/Telegram/SourceFiles/window/window_main_menu.cpp
++++ b/Telegram/SourceFiles/window/window_main_menu.cpp
+@@ -387,9 +387,10 @@ MainMenu::MainMenu(
+ 
+ 	parentResized();
+ 
+-	_telegram->setMarkedText(tr::link(
+-		u"Jerkgram Desktop"_q,
+-		u"internal:about_jerkgram"_q));
++	_telegram->setMarkedText(tr::link(u"Jerkgram Desktop"_q, 1));
++	_telegram->setLink(1, std::make_shared<LambdaClickHandler>([=] {
++		controller->show(Box(AboutBox));
++	}));
+ 	_telegram->setLinksTrusted();
+ 	// The canary version is too long for the "Version {version}" form.
+ 	_version->setMarkedText(
+@@ -407,7 +408,9 @@ MainMenu::MainMenu(
+ 		.append(tr::link(tr::lng_menu_about(tr::now), 2))); // Link 2.
+ 	_version->setLink(
+ 		1,
+-		std::make_shared<UrlClickHandler>(Core::App().changelogLink()));
++		std::make_shared<LambdaClickHandler>([=] {
++			controller->show(Box(AboutBox));
++		}));
+ 	_version->setLink(
+ 		2,
+ 		std::make_shared<LambdaClickHandler>([=] {

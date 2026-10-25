@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>com.jerkgram.desktop</id>
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-3.0</project_license>
+  <name>Jerkgram</name>
+  <summary>Independent desktop client based on Telegram Desktop</summary>
+  <launchable type="desktop-id">com.jerkgram.desktop.desktop</launchable>
+  <provides><binary>Jerkgram</binary><dbus type="session">com.jerkgram.desktop</dbus></provides>
+</component>

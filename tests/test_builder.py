@@ -31,6 +31,12 @@ class BuilderTests(unittest.TestCase):
         self.git('add', '.')
         self.git('commit', '-qm', 'fixture')
         self.sha = self.git('rev-parse', 'HEAD').strip()
+        self.stock_builder = self.base / 'stock-builder'
+        (self.stock_builder / 'patches').mkdir(parents=True)
+        (self.stock_builder / 'payloads').mkdir()
+        (self.stock_builder / 'patches/series').write_text('# Stock\n')
+        (self.stock_builder / 'payloads/manifest.json').write_text('[]')
+        shutil.copy2(ROOT / 'PINNED_UPSTREAM', self.stock_builder / 'PINNED_UPSTREAM')
 
     def git(self, *args):
         return subprocess.check_output(['git', '-C', str(self.source), *args], text=True)
@@ -83,7 +89,7 @@ class BuilderTests(unittest.TestCase):
         output = io.StringIO()
         with patch.dict(os.environ, env, clear=True), contextlib.redirect_stdout(output):
             with self.assertRaisesRegex(ValueError, 'Release build failed'):
-                self.b.build_release(self.source, self.sha, 'fixture-image', 2)
+                self.b.build_release(self.source, self.sha, 'fixture-image', 2, self.stock_builder)
         args = json.loads(argv_file.read_text())
         joined = ' '.join(args)
         self.assertNotIn('1234567', joined)
@@ -108,7 +114,7 @@ class BuilderTests(unittest.TestCase):
         shutil.copy2('/bin/true', binary)
         before = binary.read_bytes()
         out = self.base / 'artifacts'
-        manifest_path = self.b.package(binary, out, self.source, self.sha, '0.0.0-d0', ROOT)
+        manifest_path = self.b.package(binary, out, self.source, self.sha, '0.0.0-d0', self.stock_builder)
         manifest = json.loads(manifest_path.read_text())
         archive = out / manifest['artifact']['name']
         self.assertEqual(binary.read_bytes(), before)
@@ -122,9 +128,9 @@ class BuilderTests(unittest.TestCase):
             self.assertEqual(len(data), manifest['binary']['stripped_bytes'])
         self.assertIn(archive.name, (out / 'SHA256SUMS').read_text())
         with self.assertRaises(ValueError):
-            self.b.package(binary, out, self.source, self.sha, '0.0.0-d0', ROOT)
+            self.b.package(binary, out, self.source, self.sha, '0.0.0-d0', self.stock_builder)
         with self.assertRaises(ValueError):
-            self.b.package(binary, self.source / 'dist', self.source, self.sha, '0.0.0-d0', ROOT)
+            self.b.package(binary, self.source / 'dist', self.source, self.sha, '0.0.0-d0', self.stock_builder)
 
     def test_prepare_existing_wrong_checkout_preserves_contents(self):
         before = (self.source / 'stock.txt').read_bytes()

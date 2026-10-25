@@ -8,6 +8,11 @@ on:
         description: 'JSON runner label or labels; e.g. "ubuntu-24.04" or ["self-hosted","linux","x64"]'
         required: false
         type: string
+      d1_release:
+        description: 'Run the verified D1 Release campaign on the explicitly authorized ephemeral laptop runner'
+        required: false
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -15,6 +20,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   preflight:
+    if: ${{ !inputs.d1_release }}
     runs-on: ${{ fromJSON(inputs.runner_json || vars.PREFLIGHT_RUNNER_JSON || '"ubuntu-24.04"') }}
     timeout-minutes: 25
     steps:
@@ -45,3 +51,24 @@ jobs:
           path: reports/
           if-no-files-found: error
           retention-days: 14
+
+  d1-release:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.d1_release && github.actor == 'ghostbase-sg' && github.repository == 'ghostbase-sg/jerkgram-desktop-builder' }}
+    runs-on: [self-hosted, linux, x64, jerkgram-d1-ephemeral]
+    timeout-minutes: 720
+    steps:
+      - name: Checkout trusted builder revision
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          persist-credentials: false
+      - name: Verify builder and behavioral tests
+        run: |
+          python3 scripts/builder.py validate
+          python3 -m unittest discover -s tests -v
+      - name: Verify already materialized D1 source
+        run: python3 scripts/builder.py materialize --source /home/pixi/Projects/Jerkgram/Desktop/telegram-desktop-d1
+      - name: Configure, verify, then compile Release
+        env:
+          TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
+          TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
+        run: python3 scripts/release.py --source /home/pixi/Projects/Jerkgram/Desktop/telegram-desktop-d1 --evidence /home/pixi/Projects/Jerkgram/Desktop/d1-evidence --jobs 2

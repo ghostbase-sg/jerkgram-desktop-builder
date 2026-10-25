@@ -1,0 +1,22 @@
+[Desktop Entry]
+Name=Jerkgram
+Comment=New era of messaging
+TryExec=Jerkgram
+Exec=Jerkgram -- %U
+Icon=com.jerkgram.desktop
+Terminal=false
+StartupWMClass=JerkgramDesktop
+Type=Application
+Categories=Chat;Network;InstantMessaging;Qt;
+MimeType=x-scheme-handler/tg;x-scheme-handler/tonsite;x-scheme-handler/ton;
+Keywords=tg;chat;im;messaging;messenger;sms;tdesktop;
+Actions=quit;
+DBusActivatable=true
+SingleMainWindow=true
+X-GNOME-UsesNotifications=true
+X-GNOME-SingleWindow=true
+
+[Desktop Action quit]
+Exec=Jerkgram -quit
+Name=Quit Jerkgram
+Icon=application-exit
