@@ -32,7 +32,7 @@ def snapshot(files):
 class Registrar:
     def __init__(self):
         from gi.repository import Gio,GLib
-        self.G,self.IO=GLib,Gio;self.conn=Gio.bus_get_sync(Gio.BusType.SESSION,None);self.menus={}
+        self.G,self.IO=GLib,Gio;self.conn=Gio.bus_get_sync(Gio.BusType.SESSION,None);self.menus={};self.trays=[]
         xml='''<node><interface name="com.canonical.AppMenu.Registrar">
         <method name="RegisterWindow"><arg type="u" direction="in"/><arg type="o" direction="in"/></method>
         <method name="UnregisterWindow"><arg type="u" direction="in"/></method>
@@ -43,6 +43,21 @@ class Registrar:
         info=Gio.DBusNodeInfo.new_for_xml(xml)
         self.conn.register_object('/com/canonical/AppMenu/Registrar',info.interfaces[0],self.method,None,None)
         self.call('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','RequestName',GLib.Variant('(su)',('com.canonical.AppMenu.Registrar',0)))
+        tray_xml='<node><interface name="org.kde.StatusNotifierWatcher">\n        <method name="RegisterStatusNotifierItem"><arg type="s" direction="in"/></method>\n        <method name="RegisterStatusNotifierHost"><arg type="s" direction="in"/></method>\n        <property name="RegisteredStatusNotifierItems" type="as" access="read"/>\n        <property name="IsStatusNotifierHostRegistered" type="b" access="read"/>\n        <property name="ProtocolVersion" type="i" access="read"/>\n        <signal name="StatusNotifierItemRegistered"><arg type="s"/></signal>\n        <signal name="StatusNotifierHostRegistered"/></interface></node>'
+        tray_info=Gio.DBusNodeInfo.new_for_xml(tray_xml)
+        def tray_method(connection,sender,path,iface,method,params,invocation):
+            value=params.unpack()[0]
+            if method=='RegisterStatusNotifierItem':
+                dest,item_path=(sender,value) if value.startswith('/') else (value,'/StatusNotifierItem')
+                self.trays.append((dest,item_path))
+                connection.emit_signal(None,path,iface,'StatusNotifierItemRegistered',GLib.Variant('(s)',(dest+item_path,)))
+            invocation.return_value(GLib.Variant('()',()))
+        def tray_property(connection,sender,path,iface,name):
+            if name=='IsStatusNotifierHostRegistered':return GLib.Variant('b',True)
+            if name=='ProtocolVersion':return GLib.Variant('i',0)
+            return GLib.Variant('as',[dest+item for dest,item in self.trays])
+        self.conn.register_object('/StatusNotifierWatcher',tray_info.interfaces[0],tray_method,tray_property,None)
+        self.call('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','RequestName',GLib.Variant('(su)',('org.kde.StatusNotifierWatcher',0)))
         self.loop=GLib.MainLoop();threading.Thread(target=self.loop.run,daemon=True).start()
 
     def call(self,dest,path,iface,method,args):
@@ -64,6 +79,16 @@ class Registrar:
 
     def pid(self,name):
         return self.call('org.freedesktop.DBus','/org/freedesktop/DBus','org.freedesktop.DBus','GetConnectionUnixProcessID',self.G.Variant('(s)',(name,)))[0]
+
+    def tray(self,pid):
+        for dest,path in list(self.trays):
+            if self.pid(dest)!=pid:continue
+            props=self.call(dest,path,'org.freedesktop.DBus.Properties','GetAll',self.G.Variant('(s)',('org.kde.StatusNotifierItem',)))[0]
+            result={key:props.get(key) for key in ('Id','Title','Status','Category','IconName')}
+            tip=props.get('ToolTip')
+            if tip and len(tip)>2:result['tooltip_title']=tip[2]
+            return result
+        return None
 
     def about(self,pid):
         for (sender,window),path in list(self.menus.items()):
@@ -127,6 +152,9 @@ def run(binary,stock,root,evidence,platform):
         log=data/'JerkgramDesktop/log.txt'
         if log.exists():
             result['application_log_fields']=[line for line in log.read_text(errors='replace').splitlines() if any(field in line for field in ('App ID:', 'Working dir:', 'Launched version:', 'Executable dir:'))]
+        tray=menu.tray(app.pid)
+        if tray:result['gates']['tray_attribution']=tray
+        else:result['pending'].append('No tray item registered at welcome on the synthetic notifier host')
         result['welcome']=capture(app.pid,evidence/'welcome.png')
         if menu.about(app.pid):time.sleep(1);result['about']=capture(app.pid,evidence/'about.png')
         else:result['pending'].append('About menu activation unavailable; manual evidence still required')
@@ -153,7 +181,7 @@ def run(binary,stock,root,evidence,platform):
         if refusal.returncode==0 or 'Automatic updates are disabled' not in refusal.stderr:raise RuntimeError('Disabled updater did not refuse safely')
         result['gates']['installupdate_refused']=True
         result['gates']['alive_at_end']=app.poll() is None and official.poll() is None
-        result['pending']+=['Authenticated notification/MTP behavior not claimed','Tray requires a notifier host on this private bus']
+        result['pending']+=['Authenticated notification/MTP behavior not claimed']
         # Sequential same-product profile tests: do not hide fixed Gio-name constraints.
         app.terminate();app.wait(timeout=10)
         official.terminate();official.wait(timeout=10)
