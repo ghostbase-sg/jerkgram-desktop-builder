@@ -27,7 +27,7 @@
     },
     {
       "path": "patches/0003-product-surfaces.patch",
-      "sha256": "96e7f72ae8c9cdfa870dbbeece6c6e303aa438c95cf6e2a66652fe844514cfa7"
+      "sha256": "d4e880975b06b781238c6a42cb1c4d8f400ffabc973577b1d239211b5f123f12"
     },
     {
       "path": "patches/0004-integration-policy.patch",
@@ -238,7 +238,7 @@
     },
     "Telegram/SourceFiles/boxes/about_box.cpp": {
       "before": "f74e42bfb5593973de04340810e1ed31cb445c3bcf921a8b94d816db3af4dba3",
-      "after": "b66002ff51b31c1745428781e58553be09b1df84942ab630e69b89b93099169e"
+      "after": "bc6a1022aeb54db0bcfa972fc9b527d3adc5411daaa4a7f34ca6b198749f4e92"
     },
     "Telegram/SourceFiles/core/application.cpp": {
       "before": "ed62aa37c7346191678469defd6885bd2c39b16ef7e7e313cde72f18a8c1bf63",
@@ -262,7 +262,7 @@
     },
     "Telegram/SourceFiles/intro/intro_start.cpp": {
       "before": "f440e53b518fe67b9febdaba5b52b0d2e6bcb16349630d985f1bfd2a0ce87d3e",
-      "after": "c78c35df731b120c40a3d31940b175e3bc5fefe3d7420123a73529a7a9b258b2"
+      "after": "c7311d73d90af807bce9f3f28f4fc2b765ca4437a20b32b8a277a05d549ce8fd"
     },
     "Telegram/SourceFiles/logs.cpp": {
       "before": "a2a360c9ddef147c490e14c2d744a5815605545e6b6a6b0357b4eaa81f39e668",

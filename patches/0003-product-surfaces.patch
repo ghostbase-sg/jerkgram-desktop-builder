@@ -1,8 +1,7 @@
 diff --git a/Telegram/SourceFiles/boxes/about_box.cpp b/Telegram/SourceFiles/boxes/about_box.cpp
-index 31c60aa..d42ad37 100644
 --- a/Telegram/SourceFiles/boxes/about_box.cpp
 +++ b/Telegram/SourceFiles/boxes/about_box.cpp
-@@ -13,6 +13,7 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+@@ -13,6 +13,7 @@
  #include "core/update_channel.h"
  #include "core/update_checker.h"
  #include "core/version.h"
@@ -10,30 +9,44 @@ index 31c60aa..d42ad37 100644
  #include "lang/lang_keys.h"
  #include "ui/boxes/confirm_box.h"
  #include "ui/painter.h"
-@@ -65,7 +66,7 @@ rpl::producer<TextWithEntities> Text3() {
+@@ -36,10 +37,9 @@
+ namespace {
+
+ rpl::producer<TextWithEntities> Text1() {
+-	return tr::lng_about_text1(
+-		lt_api_link,
+-		tr::lng_about_text1_api(tr::url(u"https://core.telegram.org/api"_q)),
+-		tr::marked);
++	return rpl::single(tr::link(
++		u"Independent client using Telegram API"_q,
++		u"https://core.telegram.org/api"_q));
+ }
+
+ rpl::producer<TextWithEntities> Text2() {
+@@ -65,7 +65,7 @@
  } // namespace
- 
+
  void AboutBox(not_null<Ui::GenericBox*> box) {
 -	box->setTitle(u"Telegram Desktop"_q);
 +	box->setTitle(u"Jerkgram Desktop"_q);
- 
+
  	auto layout = box->verticalLayout();
- 
-@@ -114,6 +115,11 @@ void AboutBox(not_null<Ui::GenericBox*> box) {
+
+@@ -114,6 +114,11 @@
  		}
  	});
- 
+
 +	layout->add(object_ptr<Ui::FlatLabel>(
 +		box,
 +		u"Based on Telegram Desktop 7.3.1"_q,
 +		st::aboutLabel), st::boxRowPadding);
 +
  	Ui::AddSkip(layout, st::aboutTopSkip);
- 
+
  	const auto addText = [&](rpl::producer<TextWithEntities> text) {
-@@ -153,7 +159,7 @@ QString telegramFaqLink() {
+@@ -153,7 +158,7 @@
  namespace {
- 
+
  [[nodiscard]] QString CurrentVersionText(bool withCommit) {
 -	auto result = QString::fromLatin1(AppVersionStr);
 +	auto result = QString::fromLatin1(Jerkgram::Version);
@@ -41,10 +54,9 @@ index 31c60aa..d42ad37 100644
  		result += Core::CanaryVersionSuffix();
  	} else if (cAlphaVersion()) {
 diff --git a/Telegram/SourceFiles/core/version.h b/Telegram/SourceFiles/core/version.h
-index 2de2881..7a05eca 100644
 --- a/Telegram/SourceFiles/core/version.h
 +++ b/Telegram/SourceFiles/core/version.h
-@@ -20,8 +20,8 @@ https://github.com/telegramdesktop/tdesktop/blob/master/LEGAL
+@@ -20,8 +20,8 @@
  // used in Updater.cpp and Setup.iss for Windows
  constexpr auto AppId = "{53F49750-6209-4FBF-9CA8-7A333C87D1ED}"_cs;
  constexpr auto AppNameOld = "Telegram Win (Unofficial)"_cs;
@@ -56,32 +68,32 @@ index 2de2881..7a05eca 100644
  constexpr auto AppVersionStr = "7.3.1";
  constexpr auto AppBetaVersion = false;
 diff --git a/Telegram/SourceFiles/intro/intro_start.cpp b/Telegram/SourceFiles/intro/intro_start.cpp
-index d1b835a..45e5956 100644
 --- a/Telegram/SourceFiles/intro/intro_start.cpp
 +++ b/Telegram/SourceFiles/intro/intro_start.cpp
-@@ -24,7 +24,7 @@ StartWidget::StartWidget(
+@@ -24,8 +24,8 @@
  	not_null<Data*> data)
  : Step(parent, account, data, true) {
  	setMouseTracking(true);
 -	setTitleText(rpl::single(u"Telegram Desktop"_q));
+-	setDescriptionText(tr::lng_intro_about());
 +	setTitleText(rpl::single(u"Jerkgram Desktop"_q));
- 	setDescriptionText(tr::lng_intro_about());
++	setDescriptionText(rpl::single(u"Independent client based on Telegram Desktop."_q));
  	show();
  }
+
 diff --git a/Telegram/SourceFiles/platform/linux/main_window_linux.cpp b/Telegram/SourceFiles/platform/linux/main_window_linux.cpp
-index 5c09c6b..5ce3273 100644
 --- a/Telegram/SourceFiles/platform/linux/main_window_linux.cpp
 +++ b/Telegram/SourceFiles/platform/linux/main_window_linux.cpp
-@@ -221,7 +221,7 @@ void MainWindow::createGlobalMenu() {
+@@ -221,7 +221,7 @@
  		});
- 
+
  	auto quit = file->addAction(
 -		tr::lng_mac_menu_quit_telegram(tr::now, lt_telegram, u"Telegram"_q),
 +		tr::lng_mac_menu_quit_telegram(tr::now, lt_telegram, u"Jerkgram"_q),
  		this,
  		[=] { quitFromTray(); },
  		QKeySequence::Quit);
-@@ -420,7 +420,7 @@ void MainWindow::createGlobalMenu() {
+@@ -420,7 +420,7 @@
  		tr::lng_mac_menu_about_telegram(
  			tr::now,
  			lt_telegram,
@@ -91,10 +103,9 @@ index 5c09c6b..5ce3273 100644
  			ensureWindowShown();
  			controller().show(Box(AboutBox));
 diff --git a/Telegram/SourceFiles/window/main_window.cpp b/Telegram/SourceFiles/window/main_window.cpp
-index ae2b494..84530ab 100644
 --- a/Telegram/SourceFiles/window/main_window.cpp
 +++ b/Telegram/SourceFiles/window/main_window.cpp
-@@ -914,7 +914,7 @@ void MainWindow::updateTitle() {
+@@ -914,7 +914,7 @@
  		: Dialogs::Key();
  	const auto thread = key ? key.thread() : nullptr;
  	if (!thread) {
@@ -104,12 +115,11 @@ index ae2b494..84530ab 100644
  	}
  	const auto history = thread->owningHistory();
 diff --git a/Telegram/SourceFiles/window/window_main_menu.cpp b/Telegram/SourceFiles/window/window_main_menu.cpp
-index db8dcec..8961936 100644
 --- a/Telegram/SourceFiles/window/window_main_menu.cpp
 +++ b/Telegram/SourceFiles/window/window_main_menu.cpp
-@@ -388,8 +388,8 @@ MainMenu::MainMenu(
+@@ -388,8 +388,8 @@
  	parentResized();
- 
+
  	_telegram->setMarkedText(tr::link(
 -		u"Telegram Desktop"_q,
 -		u"https://desktop.telegram.org"_q));

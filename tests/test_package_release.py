@@ -44,3 +44,14 @@ class PackageTests(unittest.TestCase):
             with self.assertRaises(ValueError):package_release.integration_assets(root,config)
             (folder/'iconprivate.png').unlink();icon.unlink();icon.symlink_to('/etc/hostname')
             with self.assertRaises(ValueError):package_release.integration_assets(root,config)
+
+class SourceNoticeTests(unittest.TestCase):
+    def test_tracked_notices_only_not_untracked_credentials(self):
+        import subprocess
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d)
+            subprocess.run(['git','init','-q',str(p)],check=True)
+            (p/'LICENSE').write_text('fixture license')
+            subprocess.run(['git','-C',str(p),'add','LICENSE'],check=True)
+            (p/'LICENSE-private-key').write_text('must not ship')
+            self.assertEqual(package_release.source_notices(p),{'licenses/source/LICENSE':b'fixture license'})

@@ -60,7 +60,7 @@ def monitor(stop, path, summary):
                 if not p.name.isdigit():continue
                 try:
                     name=(p/'comm').read_text().strip()
-                    if name not in ('lto1','lto1-wpa-stream','g++','ld','ld.bfd','collect2'):continue
+                    if not name.startswith('lto1') and name not in ('g++','ld','ld.bfd','collect2'):continue
                     status=(p/'status').read_text()
                     m=re.search(r'^VmRSS:\s+(\d+)',status,re.M)
                     processes.append({'pid':int(p.name),'name':name,'rss_bytes':int(m[1])*1024 if m else 0})

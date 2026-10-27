@@ -63,6 +63,13 @@ def integration_assets(root, config):
     return result
 
 
+def source_notices(source):
+    source=Path(source).resolve()
+    names=subprocess.check_output(['git','-C',str(source),'ls-files','--recurse-submodules','-z','--',
+                                   '*LICENSE*','*COPYING*','*NOTICE*','*COPYRIGHT*','*PATENTS*']).decode().split('\0')
+    return {'licenses/source/'+name:identity.safe(source,name).read_bytes() for name in names if name}
+
+
 def package(source,evidence,output):
     source,evidence=Path(source).resolve(),Path(evidence).resolve()
     if Path(output).resolve().is_relative_to(source):raise ValueError('Package outside source tree only')
@@ -81,10 +88,14 @@ def package(source,evidence,output):
     for name in ('com.jerkgram.desktop.desktop','com.jerkgram.desktop.service'):
         files['integration/'+name]=(assets/name).read_bytes()
     files.update(integration_assets(ROOT,config))
+    files.update(source_notices(source))
+    active_path=evidence/'active-run.json'
+    workflow=json.loads(active_path.read_text()) if active_path.exists() else {}
     manifest={'schema':1,'version':config['version'],'upstream':pin,
-              'builder_sha':identity.git(ROOT,'rev-parse','HEAD'),'builder_dirty':bool(identity.git(ROOT,'status','--porcelain')),
+              'builder_sha':workflow.get('builder_sha',identity.git(ROOT,'rev-parse','HEAD')),
+              'workflow_run_id':workflow.get('run_id'),'packager_builder_sha':identity.git(ROOT,'rev-parse','HEAD'),'builder_dirty':bool(identity.git(ROOT,'status','--porcelain')),
               'overlay_config_sha256':identity.sha(ROOT/'D1_CONFIG.json'),'patches':config['patches'],
-              'payloads':config['payloads'],'updater_policy':'disabled; manual releases only',
+              'payloads':config['payloads'],'notice_members':[n for n in sorted(files) if n.startswith('licenses/')],'updater_policy':'disabled; manual releases only',
               'build_configuration':verified,'build':build,'runtime_evidence':'see separate runtime report; packaging asserts none'}
     epoch=int(identity.git(source,'show','-s','--format=%ct','HEAD'))
     return create_archive(binary,output,files,manifest,epoch)
