@@ -1,0 +1,59 @@
+name: Explicit production Release candidate
+on:
+  workflow_dispatch:
+    inputs:
+      source:
+        description: Verified persistent source path on the production runner
+        required: true
+        default: /home/pixi/Projects/Jerkgram/Desktop/telegram-desktop-d1
+        type: string
+permissions:
+  contents: read
+  packages: read
+concurrency:
+  group: jerkgram-production
+  cancel-in-progress: false
+jobs:
+  production:
+    if: ${{ github.actor == 'ghostbase-sg' && github.repository == 'ghostbase-sg/jerkgram-desktop-builder' }}
+    runs-on: ${{ fromJSON(vars.PRODUCTION_RUNNER_JSON || '["self-hosted","linux","x64","jerkgram-production"]') }}
+    timeout-minutes: 720
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify runner capacity and builder before any expensive work
+        run: |
+          python3 - <<'PY'
+          import sys,shutil
+          from pathlib import Path
+          sys.path.insert(0,'scripts')
+          from build_profile import production_resources
+          memory={x.split(':')[0]:int(x.split()[1])*1024 for x in Path('/proc/meminfo').read_text().splitlines() if x.startswith(('MemTotal:','SwapTotal:'))}
+          production_resources(memory['MemTotal'],memory['SwapTotal'],shutil.disk_usage('.').free)
+          PY
+          python3 scripts/builder.py validate
+          python3 -m unittest discover -s tests -q
+      - name: Restore pinned toolchain only if absent
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/toolchain.py restore-registry
+      - name: Explicit production compile and configuration verification
+        env:
+          JERKGRAM_SOURCE: ${{ inputs.source }}
+          TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
+          TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
+        run: python3 scripts/build_profile.py build --profile production --execute-production --source "$JERKGRAM_SOURCE" --evidence "$RUNNER_TEMP/production-evidence"
+      - name: Package candidate; runtime acceptance remains a separate required milestone gate
+        env:
+          JERKGRAM_SOURCE: ${{ inputs.source }}
+        run: python3 scripts/package_release.py --source "$JERKGRAM_SOURCE" --evidence "$RUNNER_TEMP/production-evidence" --output "$RUNNER_TEMP/production-candidate"
+      - name: Preserve candidate/checksums/provenance and evidence
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: production-candidate-${{ github.run_id }}
+          path: |
+            ${{ runner.temp }}/production-candidate/
+            ${{ runner.temp }}/production-evidence/
+          retention-days: 14

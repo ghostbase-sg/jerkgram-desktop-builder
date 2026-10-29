@@ -1,18 +1,8 @@
-name: Linux builder preflight
+name: Linux source and profile preflight
 on:
   push:
-    branches: [main]
+  pull_request:
   workflow_dispatch:
-    inputs:
-      runner_json:
-        description: 'JSON runner label or labels; e.g. "ubuntu-24.04" or ["self-hosted","linux","x64"]'
-        required: false
-        type: string
-      d1_release:
-        description: 'Run the verified D1 Release campaign on the explicitly authorized ephemeral laptop runner'
-        required: false
-        type: boolean
-        default: false
 permissions:
   contents: read
 concurrency:
@@ -20,55 +10,28 @@ concurrency:
   cancel-in-progress: false
 jobs:
   preflight:
-    if: ${{ !inputs.d1_release }}
-    runs-on: ${{ fromJSON(inputs.runner_json || vars.PREFLIGHT_RUNNER_JSON || '"ubuntu-24.04"') }}
-    timeout-minutes: 25
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - name: Checkout builder
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Structure and resource report
-        env:
-          TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
-          TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
-        run: python3 scripts/preflight.py --output reports
-      - name: Builder tests (small fixture ELF only)
-        run: python3 -m unittest discover -s tests -v
-      - name: Fetch and verify pinned upstream (no submodule downloads or build)
-        shell: bash
+      - name: Source, profile and fixture CMake tests
+        run: |
+          python3 scripts/preflight.py --output reports
+          python3 scripts/build_profile.py validate
+          python3 -m unittest discover -s tests -v
+      - name: Fetch pinned upstream and verify exact materialization
         run: |
           set -euo pipefail
           source_dir="$RUNNER_TEMP/jerkgram-preflight-source"
           python3 scripts/builder.py prepare --source "$source_dir" --skip-submodules 2>&1 | tee reports/upstream-fetch.log
           python3 scripts/builder.py materialize --source "$source_dir" --skip-submodules | tee reports/materialization.json
-          git -C "$source_dir" rev-parse HEAD > reports/verified-upstream-sha.txt
-      - name: Preserve preflight evidence
+      - name: Preserve evidence
         if: always()
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
           name: linux-preflight-${{ github.run_id }}
           path: reports/
-          if-no-files-found: error
           retention-days: 14
-
-  d1-release:
-    if: ${{ github.event_name == 'workflow_dispatch' && inputs.d1_release && github.actor == 'ghostbase-sg' && github.repository == 'ghostbase-sg/jerkgram-desktop-builder' }}
-    runs-on: [self-hosted, linux, x64, jerkgram-d1-ephemeral]
-    timeout-minutes: 720
-    steps:
-      - name: Checkout trusted builder revision
-        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
-        with:
-          persist-credentials: false
-      - name: Verify builder and behavioral tests
-        run: |
-          python3 scripts/builder.py validate
-          python3 -m unittest discover -s tests -v
-      - name: Verify already materialized D1 source
-        run: python3 scripts/builder.py materialize --source /home/pixi/Projects/Jerkgram/Desktop/telegram-desktop-d1
-      - name: Configure, verify, then compile Release
-        env:
-          TDESKTOP_API_ID: ${{ secrets.TDESKTOP_API_ID }}
-          TDESKTOP_API_HASH: ${{ secrets.TDESKTOP_API_HASH }}
-        run: python3 scripts/release.py --source /home/pixi/Projects/Jerkgram/Desktop/telegram-desktop-d1 --evidence /home/pixi/Projects/Jerkgram/Desktop/d1-evidence --jobs 2

@@ -1,0 +1,31 @@
+name: Explicit toolchain retention
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+  packages: write
+concurrency:
+  group: jerkgram-toolchain-publish
+  cancel-in-progress: false
+jobs:
+  publish:
+    if: ${{ github.actor == 'ghostbase-sg' && github.repository == 'ghostbase-sg/jerkgram-desktop-builder' }}
+    runs-on: [self-hosted, linux, x64, jerkgram-toolchain-publisher]
+    timeout-minutes: 120
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Tests and inspect/publish the already restored pinned image
+        env:
+          GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          python3 -m unittest discover -s tests -q
+          python3 scripts/toolchain.py publish --output "$RUNNER_TEMP/toolchain-publication.json"
+      - name: Preserve registry digest evidence (never credentials or product data)
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: toolchain-publication-${{ github.run_id }}
+          path: ${{ runner.temp }}/toolchain-publication.json
+          retention-days: 30

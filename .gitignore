@@ -11,3 +11,4 @@ work/
 out/
 *.tar.xz
 *.AppImage
+*.tar.zst

@@ -4,21 +4,19 @@ Canonical development/build infrastructure: `ghostbase-sg/jerkgram-desktop-build
 
 The pinned implementation is Official Telegram Desktop v7.3.1 at `6fed91ffab9861771a75f29df65031b3c80b6941`. This repository contains builder-owned scripts, tests, metadata and future overlays, not the Telegram source history or local build output.
 
-Current milestone: builder foundation after D0. **Zero Jerkgram product changes.** `JERKGRAM_VERSION=0.0.0-d0` is builder metadata; it is not a branded app release. D1 identity is not implemented.
+D1B identity alpha `0.1.0-alpha.1` is compiled and runtime-tested. The current infrastructure milestone separates daily optimized no-LTO development from explicit production LTO. See [daily/recovery instructions](docs/fast-dev.md) and [measurement ledger](docs/fast-dev-progress.md) for actual completion status.
 
 ## Architecture
 
-Pinned clean upstream → verify SHA/submodules → materialize Jerkgram-owned changes → verify → Release build with controlled LTO → strip a copy → package/checksum/provenance → later clean source export and public release.
+One pinned, materialized source tree → two persistent build configurations → independent verification and packaging. Builder owns patches/assets/configuration; it does not carry Telegram source history. Existing production `out/` and artifacts are preserved. Daily work uses only `out/dev-fast` in the same source tree.
 
-`jerkgram/Jerkgram-Desktop` is reserved for future clean source snapshots, tags, provenance and Releases. Do not use it as the development origin or transfer builder history into it. Do not create it before D1 build/runtime/artifact/source-export gates pass.
+`jerkgram/Jerkgram-Desktop` remains reserved for future clean source snapshots and approved public Releases.
 
-## Preflight
+## Fast preflight
 
-Run `python3 scripts/preflight.py --output reports` and `python3 -m unittest discover -s tests -v`.
+Run `python3 scripts/preflight.py --output reports`, `python3 scripts/build_profile.py validate` and `python3 -m unittest discover -s tests -v`.
 
-Actions runs resource reporting, small builder tests and a real fetch/verification of the pinned upstream tag/SHA. It deliberately skips recursive submodule downloads and all Telegram compilation/runtime. Missing production secrets are reported as presence booleans and do not make this infrastructure preflight pretend production readiness.
-
-Runner selection is replaceable: `PREFLIGHT_RUNNER_JSON` repository variable, or `runner_json` on workflow_dispatch, accepts a JSON runner label or label array. Default: `"ubuntu-24.04"`. There is no automatic pull-request execution on self-hosted machines.
+Every push/PR runs hosted source/profile/fixture tests and pinned materialization. It needs no API Secrets and never compiles Telegram or executes public PR code on a local runner. Production and toolchain publication are separate explicit workflows.
 
 ## Source preparation
 
@@ -31,47 +29,29 @@ python3 scripts/builder.py materialize --source /path/to/telegram-desktop
 
 Preparation fetches the pinned tag and rejects an unexpected SHA. Existing checkouts are verified before any operation; no reset, clean or overwrite is performed. Default preparation initializes pinned recursive submodules. `--skip-submodules` is a fetch-only preflight mode, never proof of a build-ready dependency tree.
 
-Materialization currently verifies a clean pinned checkout and returns `product_changes: []`. Nonempty patch/payload manifests fail explicitly until D1 materialization is implemented and audited; they are never silently ignored.
+Materialization applies and verifies the ordered D1 patches and hashed payloads. It accepts pristine pinned input or the exact already materialized state, and fails closed on drift. Reuse the existing active source tree rather than creating another checkout per milestone.
 
-## Future production build (explicit opt-in)
+## Development and production
 
-See [production build requirements](docs/production.md) before running any expensive operation.
+[Build profiles and recovery](docs/fast-dev.md) describe the supported commands. `dev-fast` is the default; production requires explicit opt-in and proven runner capacity. Production retains Release LTO with one streaming worker. DEV is optimized Release with LTO disabled in both the image-derived initial compiler environment and normal CMake options; effective generated commands are checked.
 
-```sh
-python3 scripts/builder.py build-release --source /path/to/managed-source --execute
-```
-
-The adapter uses the official `tdesktop:centos_env` image and existing `out/`, Release configuration, current environment API credentials, two compile jobs by default, and Release link overrides `-flto=1 --param=lto-max-streaming-parallelism=1`. It does not prepare/rebuild the Docker image. It sanitizes API credential values from subprocess output.
-
-This adapter is an implementation for a future authorized build, **not a claim that a production build has passed**. Preflight never calls it. Do not point it at the valuable D0 tree with production credentials: changing its test credentials changes compile definitions and causes recompilation. D0's successful manual relink is documented separately.
-
-## Packaging
-
-```sh
-python3 scripts/builder.py package --source /path/to/managed-source \
-  --binary /path/to/managed-source/out/Release/Telegram \
-  --output /path/to/artifacts/version
-```
-
-Packaging copies and strips an x86-64 ELF, writes a portable `.tar.xz`, `SHA256SUMS` and `manifest.json`. The input binary is preserved. Output must be a new directory outside the source/build tree. Current artifact names explicitly say `stock-telegram-desktop`; D1 will introduce branded packaging after the identity audit.
-
-Packaging does not assert compile/runtime evidence. The manifest records upstream/builder commits, dirty state, zero overlays, input/stripped/artifact hashes and sizes. Future release publication must join these records to actual successful build/runtime evidence and pinned toolchain provenance; no export/publish workflow exists yet.
+Packaging requires matching compile/config evidence and strips a staging copy. It does not certify runtime or authorize publication. Milestone runtime acceptance remains a separate gate.
 
 ## Boundaries
 
 - Never commit API credentials, full source checkout, out, binaries, Docker/cache or private logs.
 - Keep upstream tracked `AGENTS.md` intact; local source instructions belong in ignored `AGENTS.override.md`.
 - Preserve the expensive D0 source/build state and Docker image: [storage policy](docs/storage.md).
-- Next milestone starts with the [D1 focused read-only identity audit](docs/d1-audit.md), not automatic product edits.
+- Product feature development remains outside the fast-dev infrastructure milestone.
 
-## D1B identity alpha (implementation in progress)
+## D1B identity alpha
 
 The D1 overlay is defined by `D1_CONFIG.json`, ordered `patches/series`, hashed payloads and `JERKGRAM_VERSION`. Read `docs/d1-audit.md` and `docs/d1b-progress.md` for ownership, scope and actual evidence. D1 completion requires Release compile and runtime coexistence; unit tests are not that proof.
 
-Use a separate pinned checkout without an existing `out` for initial materialization. Never target the protected D0 checkout. `python3 scripts/builder.py materialize --source PATH` accepts pristine pinned input or verifies the exact previously materialized output; mismatched/partial overlays fail closed. `verify-source` reports the verified state. Generated build output is allowed only under `out`; unexpected ignored source inputs are rejected.
+For first materialization use pristine pinned input. For daily work reuse the active D1 source; never reapply patches to unrelated or partial trees. `python3 scripts/builder.py materialize --source PATH` accepts pristine pinned input or verifies the exact previously materialized output; mismatched/partial overlays fail closed. `verify-source` reports the verified state. Generated build output is allowed only under `out`; unexpected ignored source inputs are rejected.
 
 Approved Linux branding is `JerkgramGlassReveal.icon`; canonical source vectors/recipe and approval provenance live in `payloads/linux-identity/master`. Derivatives are committed and hash checked. Regenerate with `python3 scripts/generate_linux_icons.py` (librsvg `rsvg-convert` required), and generate presentation header with `python3 scripts/generate_identity_header.py`. Review/update manifest hashes after intentional changes; never accept unverified payload drift.
 
-The existing preflight workflow has a separately gated, manual `d1_release` mode for the explicitly authorized one-job laptop runner. It runs source/tests/config checks before compiling. Actions Secrets are forwarded only as environment variables. Release updater is explicitly disabled, effective LTO is verified from generated flags, and link concurrency is one worker. No public PR triggers the local runner.
+The explicit production workflow uses trusted manual dispatch and a separately selected production runner. Standard hosted preflight resources are not evidence of production LTO capacity. Production Secrets are forwarded only through environment variables, and subprocess output is redacted.
 
 `python3 scripts/package_release.py --source PATH --evidence PATH --output NEW_PATH` requires matching compile/config evidence. It strips a copy, packages only explicit own assets/notices and produces SHA256/provenance. No Updater/Packer/profile/credential/build-log packaging. Optional user-local integration is explicit via the packaged `install_linux.py`; it does not set default URL handlers.

@@ -1,0 +1,26 @@
+{
+  "schema": 1,
+  "upstream_commit": "6fed91ffab9861771a75f29df65031b3c80b6941",
+  "generator": "Telegram/build/docker/centos_env/gen_dockerfile.py",
+  "inputs": {
+    "Telegram/build/docker/centos_env/Dockerfile": "16eb3c714ed80e85d84fa3fdcf37250c681e168d9657278f796f5e30e6bc418d",
+    "Telegram/build/docker/centos_env/gen_dockerfile.py": "280177afc20764027ad89712dd3d87e9d838eb33f49b14416cbd543b900ee03d",
+    "Telegram/build/docker/centos_env/poetry.lock": "f0975ca139ebc1f8fef23d5bef2bc6313942a0eb5a3a30043ec73b721a77b357",
+    "Telegram/build/docker/centos_env/pyproject.toml": "cbff1f69e91509ab6837dc40d341ca4778bf07093b9afcbd83cea6d9bc936680"
+  },
+  "render_env": {
+    "DEBUG": "1",
+    "LTO": "1",
+    "MINSIZE": "",
+    "ASAN": "",
+    "JOBS": "2"
+  },
+  "old_image_id": "sha256:f8254a3af4ff32abc7cb5b5519f150d84e0df7a5fffe8cf50a2e25a20e2f8d9a",
+  "expected_compatibility": {
+    "gcc": "15.2.1",
+    "qt": "6.11.2"
+  },
+  "note": "rockylinux:8 and distribution packages move; recorded actual image digest is authoritative after recovery",
+  "epel_https": true,
+  "network_override_reason": "Upstream DNF selected HTTP mirror.twds.com.tw and timed out repeatedly; official HTTPS dl.fedoraproject.org returned 200 in 0.66s. Package/compiler/source policy unchanged."
+}

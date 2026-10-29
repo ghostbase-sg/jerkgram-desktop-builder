@@ -60,9 +60,16 @@ def state_path(source):
     return p if p.is_absolute() else source / p
 
 
-def verify(source, expected, root, submodules=True):
+def verify(source, expected, root, submodules=True, allow_edits=()):
     source, root = Path(source).resolve(), Path(root).resolve()
     config = load(root, expected)
+    edits = set(allow_edits)
+    for name in edits:
+        candidate = safe(source, name)
+        if not name.startswith('Telegram/SourceFiles/') or candidate.suffix not in ('.cpp', '.h') or not candidate.is_file():
+            raise ValueError('Development edit outside declared source scope')
+        if name not in config['files']:
+            git(source, 'ls-files', '--error-unmatch', '--', name)
     if git(source, 'rev-parse', 'HEAD') != expected:
         raise ValueError('Source HEAD does not equal pinned commit')
     if submodules:
@@ -78,6 +85,7 @@ def verify(source, expected, root, submodules=True):
         raise ValueError('Unexpected ignored source input outside build output')
     marker = state_path(source)
     if not marker.exists():
+        if edits:raise ValueError('Development edits require verified materialization')
         if git(source, 'status', '--porcelain', '--untracked-files=all'):
             raise ValueError('Pristine input has unexpected changes')
         return 'pristine'
@@ -88,11 +96,11 @@ def verify(source, expected, root, submodules=True):
     untracked = set(git(source, 'ls-files', '--others', '--exclude-standard').splitlines())
     wanted_changed = {p for p, f in config['files'].items() if f['before'] is not None}
     wanted_new = set(config['files']) - wanted_changed
-    if changed != wanted_changed or untracked != wanted_new or git(source, 'diff', '--cached', '--name-only'):
+    if (changed - edits) != (wanted_changed - edits) or untracked != wanted_new or git(source, 'diff', '--cached', '--name-only'):
         raise ValueError('Materialized file inventory mismatch')
     for name, hashes in config['files'].items():
         p = safe(source, name)
-        if not p.is_file() or sha(p) != hashes['after']:
+        if not p.is_file() or (name not in edits and sha(p) != hashes['after']):
             raise ValueError('Materialized postimage mismatch: ' + name)
         if p.stat().st_mode & 0o111:
             raise ValueError('Unexpected executable overlay file: ' + name)

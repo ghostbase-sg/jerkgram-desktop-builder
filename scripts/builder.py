@@ -99,7 +99,13 @@ def redact(line, secrets):
 def build_release(source, expected, image, jobs, root=ROOT):
     if (root / 'D1_CONFIG.json').exists():
         from release import run
-        run(source, Path(source).parent / 'd1-evidence', image, jobs)
+        from build_profile import image_id, production_resources
+        import shutil
+        memory={x.split(':')[0]:int(x.split()[1])*1024 for x in Path('/proc/meminfo').read_text().splitlines() if x.startswith(('MemTotal:','SwapTotal:'))}
+        production_resources(memory['MemTotal'],memory['SwapTotal'],shutil.disk_usage(source).free)
+        pinned=image_id()
+        if image not in ('tdesktop:centos_env',pinned):raise ValueError('Use the verified toolchain lock')
+        run(source, Path(source).parent / 'production-evidence', pinned, jobs)
         return Path(source).resolve() / 'out/Release/Jerkgram'
     materialize(source, expected, root)
     secrets = credentials(os.environ)

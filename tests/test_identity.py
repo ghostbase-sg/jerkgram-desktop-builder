@@ -129,5 +129,16 @@ class MaterializationTests(unittest.TestCase):
         self.assertFalse((self.root / 'escape').exists())
 
 
+    def test_dev_edit_is_scoped_and_production_stays_strict(self):
+        name='Telegram/SourceFiles/leaf.cpp';p=self.source/name;p.parent.mkdir(parents=True);p.write_text('int leaf(){return 1;}\n')
+        self.git('add',name);self.git('commit','-qm','leaf fixture');self.sha=self.git('rev-parse','HEAD').strip();self.config['upstream_commit']=self.sha;self.save();self.apply()
+        p.write_text('int leaf(){return 1;} // local development comment\n')
+        with self.assertRaises(ValueError):identity.verify(self.source,self.sha,self.overlay,submodules=False)
+        self.assertEqual(identity.verify(self.source,self.sha,self.overlay,submodules=False,allow_edits={name}),'materialized')
+        (self.source/'stock.txt').write_text('undeclared change')
+        with self.assertRaises(ValueError):identity.verify(self.source,self.sha,self.overlay,submodules=False,allow_edits={name})
+        with self.assertRaises(ValueError):identity.verify(self.source,self.sha,self.overlay,submodules=False,allow_edits={'../escape.cpp'})
+
+
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "dev-fast": {
+    "directory": "out/dev-fast",
+    "generator": "Ninja",
+    "configuration": "Release",
+    "lto": false,
+    "debug_metadata": "g1",
+    "link_flags": "-fno-lto -fno-use-linker-plugin -fuse-ld=lld",
+    "cmake": {
+      "DESKTOP_APP_DISABLE_AUTOUPDATE": "ON",
+      "DESKTOP_APP_DISABLE_CRASH_REPORTS": "ON",
+      "DESKTOP_APP_USE_PACKAGED": "OFF",
+      "DESKTOP_APP_ENABLE_LTO": "OFF",
+      "CMAKE_INTERPROCEDURAL_OPTIMIZATION": "OFF"
+    }
+  },
+  "production": {
+    "directory": "out",
+    "generator": "Ninja Multi-Config",
+    "configuration": "Release",
+    "lto": true,
+    "link_flags": "-flto=1 --param=lto-max-streaming-parallelism=1",
+    "cmake": {
+      "DESKTOP_APP_DISABLE_AUTOUPDATE": "ON",
+      "DESKTOP_APP_DISABLE_CRASH_REPORTS": "ON",
+      "DESKTOP_APP_USE_PACKAGED": "OFF"
+    }
+  }
+}
