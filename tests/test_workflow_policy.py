@@ -10,3 +10,10 @@ class WorkflowPolicyTests(unittest.TestCase):
             self.assertIn('  workflow_dispatch:',text);self.assertNotIn('  push:',text);self.assertNotIn('  pull_request:',text)
             self.assertIn("github.actor == 'ghostbase-sg'",text)
         self.assertIn('--execute-production',(ROOT/'.github/workflows/production.yml').read_text())
+    def test_existing_workflow_can_dispatch_only_explicit_trusted_retention(self):
+        pre=(ROOT/'.github/workflows/linux-preflight.yml').read_text()
+        self.assertIn('retain_toolchain:',pre)
+        self.assertIn("github.event_name == 'workflow_dispatch' && inputs.retain_toolchain",pre)
+        self.assertIn("github.actor == 'ghostbase-sg'",pre)
+        self.assertIn('uses: ./.github/workflows/toolchain-publish.yml',pre)
+        self.assertIn('  workflow_call:',(ROOT/'.github/workflows/toolchain-publish.yml').read_text())

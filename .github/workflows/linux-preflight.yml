@@ -3,6 +3,11 @@ on:
   push:
   pull_request:
   workflow_dispatch:
+    inputs:
+      retain_toolchain:
+        description: Publish an already restored pinned toolchain (trusted local runner only)
+        type: boolean
+        default: false
 permissions:
   contents: read
 concurrency:
@@ -10,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 jobs:
   preflight:
+    if: ${{ github.event_name != 'workflow_dispatch' || !inputs.retain_toolchain }}
     runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
@@ -35,3 +41,9 @@ jobs:
           name: linux-preflight-${{ github.run_id }}
           path: reports/
           retention-days: 14
+  toolchain-retention:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.retain_toolchain && github.actor == 'ghostbase-sg' && github.repository == 'ghostbase-sg/jerkgram-desktop-builder' }}
+    permissions:
+      contents: read
+      packages: write
+    uses: ./.github/workflows/toolchain-publish.yml
