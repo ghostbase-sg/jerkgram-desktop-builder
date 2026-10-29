@@ -73,3 +73,19 @@ class RegistryRecoveryTests(unittest.TestCase):
         with patch.object(Path,'read_text',return_value=json.dumps(lock)),patch.object(toolchain.subprocess,'run',return_value=Mock(returncode=0)):
             self.assertEqual(toolchain.restore_registry()['status'],'already_cached')
             with self.assertRaises(ValueError):toolchain.restore_registry(verify_remote=True)
+
+class OfficialQtInspectionTests(unittest.TestCase):
+    def test_cmake_qt_install_without_pkgconfig_is_inspectable(self):
+        import contextlib,io
+        from unittest.mock import patch
+        versions={'g++':'15.2.1','cmake':'cmake version 3.26.5','ninja':'1.13.2','qmake':'6.11.2','ld.lld':'LLD 21.1.8'}
+        def execute(args,**kwargs):
+            if args[:3]==['docker','image','inspect']:return json.dumps([{'Id':'sha256:'+'1'*64,'Size':30,'Config':{'Env':[]}}])
+            if args[:2]==['docker','run']:
+                code='\n'.join(args[-1].splitlines()[1:-1]);output=io.StringIO()
+                with contextlib.redirect_stdout(output),patch.object(Path,'iterdir',return_value=iter(())):exec(code,{})
+                return output.getvalue()
+            if args[0] not in versions:raise FileNotFoundError('Official static Qt has no pkg-config metadata')
+            return versions[args[0]]+'\n'
+        with patch.object(toolchain.subprocess,'check_output',side_effect=execute):
+            self.assertEqual(toolchain.inspect('pinned')['versions']['qt'],'6.11.2')

@@ -48,7 +48,7 @@ def inspect(image):
         raise ValueError('Unexpected sensitive image environment key')
     command='''python3 - <<'CHECK'
 import json,subprocess,os,pathlib
-commands={'gcc':['g++','-dumpfullversion','-dumpversion'],'compiler':['g++','--version'],'cmake':['cmake','--version'],'ninja':['ninja','--version'],'qt':['pkg-config','--modversion','Qt6Core'],'lld':['ld.lld','--version']}
+commands={'gcc':['g++','-dumpfullversion','-dumpversion'],'compiler':['g++','--version'],'cmake':['cmake','--version'],'ninja':['ninja','--version'],'qt':['qmake','-query','QT_VERSION'],'lld':['ld.lld','--version']}
 r={k:subprocess.check_output(v,text=True).splitlines()[0] for k,v in commands.items()}
 r['flags']={k:os.environ.get(k) for k in ('CC','CXX','CFLAGS','CXXFLAGS','LDFLAGS','AR','RANLIB')}
 r['source_mount_empty']=not any(pathlib.Path('/usr/src/tdesktop').iterdir())
@@ -71,14 +71,25 @@ def probe(image,source,output):
     command='''set -euo pipefail
 cd "$(mktemp -d /tmp/jerkgram-compat-XXXXXX)"
 printf '#include <QtCore/QCoreApplication>\\n#include <QtCore/QLibraryInfo>\\n#include <cstdio>\\nint main(int argc,char **argv){QCoreApplication a(argc,argv); std::puts(qVersion()); return 0;}\\n' > probe.cpp
-g++ -std=c++20 -O2 -fPIC -fno-lto -fno-use-linker-plugin -fuse-ld=lld -static-libstdc++ -static-libgcc probe.cpp $(pkg-config --cflags --libs Qt6Core) -o probe
-./probe
-file probe
+cat > CMakeLists.txt <<'CMAKE'
+cmake_minimum_required(VERSION 3.25)
+project(CompatibilityProbe LANGUAGES CXX)
+find_package(Qt6 REQUIRED COMPONENTS Core)
+add_executable(probe probe.cpp)
+target_compile_features(probe PRIVATE cxx_std_20)
+target_link_libraries(probe PRIVATE Qt6::Core)
+CMAKE
+CFLAGS='-O2 -fPIC -fno-lto' CXXFLAGS='-O2 -fPIC -fno-lto' cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release '-DCMAKE_EXE_LINKER_FLAGS_RELEASE=-fno-lto -fno-use-linker-plugin -fuse-ld=lld'
+cmake --build build --parallel 2
+./build/probe
+file build/probe
 g++ -nostdlib -no-pie -fno-lto -fno-use-linker-plugin -fuse-ld=lld -Wl,-r /probe/old.o -o native-fallback.o
 file native-fallback.o
+g++ -nostdlib -no-pie -r -flto=1 --param=lto-max-streaming-parallelism=1 /probe/old.o -o gcc-lto-compat.o
+file gcc-lto-compat.o
 '''
     start=time.time();p=subprocess.run(['docker','run','--rm','--volume',str(obj)+':/probe/old.o:ro','--entrypoint','bash',image,'-c',command],capture_output=True,text=True)
-    report={'image':info,'duration_seconds':time.time()-start,'exit_code':p.returncode,'stdout':p.stdout,'stderr':p.stderr,'old_object_sha256':before,'old_object_preserved':sha(obj)==before,'scope':'tiny Qt6Core native executable and partial native link of one preserved fat-LTO object; no production target build'}
+    report={'image':info,'duration_seconds':time.time()-start,'exit_code':p.returncode,'stdout':p.stdout,'stderr':p.stderr,'old_object_sha256':before,'old_object_preserved':sha(obj)==before,'scope':'tiny Qt6Core native executable plus native and single-worker GCC incremental LTO compatibility links of one preserved object; no production target build'}
     Path(output).write_text(json.dumps(report,indent=2)+'\n')
     if p.returncode or not report['old_object_preserved']:raise ValueError('Compatibility probe failed; inspect saved output')
     return report
