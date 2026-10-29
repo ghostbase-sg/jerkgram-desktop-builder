@@ -58,6 +58,31 @@ CHECK'''
     if not versions['source_mount_empty']:raise ValueError('Toolchain contains product source/output')
     return {'image_id':data['Id'],'size_bytes':data['Size'],'repo_digests':data.get('RepoDigests',[]),'versions':versions}
 
+def compatible(info,recipe):
+    for key,value in recipe['expected_compatibility'].items():
+        if info['versions'].get(key)!=value:raise ValueError('Recovered toolchain differs from measured D1B '+key)
+    return True
+
+def probe(image,source,output):
+    info=inspect(image);compatible(info,json.loads(RECIPE.read_text()))
+    source=Path(source).resolve();objects=list((source/'out/Telegram/CMakeFiles').glob('Telegram.dir/Release/SourceFiles/intro/intro_start.cpp.o'))
+    if len(objects)!=1:raise ValueError('Expected preserved production object for native fallback probe')
+    obj=objects[0];before=sha(obj)
+    command='''set -euo pipefail
+cd "$(mktemp -d /tmp/jerkgram-compat-XXXXXX)"
+printf '#include <QtCore/QCoreApplication>\\n#include <QtCore/QLibraryInfo>\\n#include <cstdio>\\nint main(int argc,char **argv){QCoreApplication a(argc,argv); std::puts(qVersion()); return 0;}\\n' > probe.cpp
+g++ -std=c++20 -O2 -fPIC -fno-lto -fno-use-linker-plugin -fuse-ld=lld -static-libstdc++ -static-libgcc probe.cpp $(pkg-config --cflags --libs Qt6Core) -o probe
+./probe
+file probe
+g++ -nostdlib -no-pie -fno-lto -fno-use-linker-plugin -fuse-ld=lld -Wl,-r /probe/old.o -o native-fallback.o
+file native-fallback.o
+'''
+    start=time.time();p=subprocess.run(['docker','run','--rm','--volume',str(obj)+':/probe/old.o:ro','--entrypoint','bash',image,'-c',command],capture_output=True,text=True)
+    report={'image':info,'duration_seconds':time.time()-start,'exit_code':p.returncode,'stdout':p.stdout,'stderr':p.stderr,'old_object_sha256':before,'old_object_preserved':sha(obj)==before,'scope':'tiny Qt6Core native executable and partial native link of one preserved fat-LTO object; no production target build'}
+    Path(output).write_text(json.dumps(report,indent=2)+'\n')
+    if p.returncode or not report['old_object_preserved']:raise ValueError('Compatibility probe failed; inspect saved output')
+    return report
+
 def rebuild(source,evidence,python,execute=False):
     source,evidence=Path(source).resolve(),Path(evidence).resolve();evidence.mkdir(parents=True,exist_ok=True)
     recipe=json.loads(RECIPE.read_text());data=render(source,recipe,python)
@@ -228,10 +253,12 @@ def main():
     i=sub.add_parser('inspect');i.add_argument('--image',default='tdesktop:centos_env')
     a=sub.add_parser('backup');a.add_argument('--image',default='tdesktop:centos_env');a.add_argument('--output',required=True)
     a=sub.add_parser('restore-archive');a.add_argument('--archive',required=True);a.add_argument('--metadata',required=True)
+    a=sub.add_parser('probe');a.add_argument('--image',default='tdesktop:centos_env');a.add_argument('--source',required=True);a.add_argument('--output',required=True)
     a=sub.add_parser('publish');a.add_argument('--output',required=True)
     sub.add_parser('restore-registry')
     a=p.parse_args()
-    if a.operation=='publish':result=publish(a.output)
+    if a.operation=='probe':result=probe(a.image,a.source,a.output)
+    elif a.operation=='publish':result=publish(a.output)
     elif a.operation=='restore-registry':result=restore_registry()
     elif a.operation=='inspect':result=inspect(a.image)
     elif a.operation=='backup':result=backup(a.image,a.output)

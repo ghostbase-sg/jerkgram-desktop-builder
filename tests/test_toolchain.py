@@ -58,3 +58,10 @@ class ToolchainTests(unittest.TestCase):
                 m=tarfile.TarInfo(name);m.size=len(data);t.addfile(m,io.BytesIO(data))
         b.seek(0);result=toolchain.verify_save(b,expected)
         self.assertEqual(result['image_id'],expected);self.assertEqual(result['config_digest'],cd)
+
+class CompatibilityTests(unittest.TestCase):
+    def test_changed_compiler_or_qt_is_not_silently_accepted(self):
+        recipe={'expected_compatibility':{'gcc':'15.2.1','qt':'6.11.2'}}
+        self.assertTrue(toolchain.compatible({'versions':{'gcc':'15.2.1','qt':'6.11.2'}},recipe))
+        with self.assertRaises(ValueError):toolchain.compatible({'versions':{'gcc':'15.3.0','qt':'6.11.2'}},recipe)
+        with self.assertRaises(ValueError):toolchain.compatible({'versions':{'gcc':'15.2.1','qt':'6.12.0'}},recipe)

@@ -81,3 +81,14 @@ If `out/dev-fast` is lost, a new DEV bootstrap is required. If production `out` 
 No automatic clean/prune. `out/dev-fast` isolates incompatible flags without another source clone. Production cache/binary hashes are checked before and after DEV builds; benchmark source bytes and timestamps are restored even on failure.
 
 Toolchain recovery uses BuildKit maximum stage concurrency 2 and dependency jobs 2, with a 24 GiB container cap. DEV defaults to two compile jobs. Do not run dependency recovery, DEV and production builds simultaneously. See `storage.md` for retention costs and consequences of deletion.
+
+For the infrastructure smoke gate (host GNOME introspection Python, Hyprland + grim available):
+
+```sh
+dbus-run-session -- /usr/bin/python3 scripts/runtime_dev.py \
+  --binary "$source_dir/out/dev-fast/Jerkgram" \
+  --root /tmp/jerkgram-dev-runtime-UNIQUE \
+  --evidence /path/to/new/runtime-evidence --platform xcb
+```
+
+Run a second independent private-bus invocation with `--platform wayland` and new root/evidence. The helper checks UI/process, own default profile/D-Bus and disabled update application; it does not claim authenticated Telegram behavior or redo the completed D1B coexistence campaign.
