@@ -233,9 +233,9 @@ def publish(output):
     result={'image_id':expected,'version_tag':tag,'registry_reference':reference,'largest_layer_bytes':max(x['size'] for x in remote['layers']),'compressed_layer_bytes':sum(x['size'] for x in remote['layers']),'layers':len(remote['layers']),'image':info}
     Path(output).write_text(json.dumps(result,indent=2)+'\n');return result
 
-def restore_registry():
+def restore_registry(verify_remote=False):
     lock=json.loads((ROOT/'toolchains/lock.json').read_text());expected=lock['image_id']
-    if subprocess.run(['docker','image','inspect',expected],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:
+    if not verify_remote and subprocess.run(['docker','image','inspect',expected],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:
         return {'status':'already_cached','image_id':expected}
     reference=lock.get('registry_reference','')
     if not re.fullmatch(r'ghcr\.io/ghostbase-sg/jerkgram-desktop-toolchain@sha256:[0-9a-f]{64}',reference):raise ValueError('No verified pinned registry recovery reference')
@@ -245,7 +245,7 @@ def restore_registry():
         subprocess.run(['docker','pull','--platform','linux/amd64',reference],env=env,check=True)
     result=inspect(expected)
     if result['image_id']!=expected:raise ValueError('Pulled wrong image')
-    subprocess.run(['docker','tag',expected,'tdesktop:centos_env'],check=True);return result
+    subprocess.run(['docker','tag',expected,'tdesktop:centos_env'],check=True);result.update(status='remote_digest_pulled_and_verified',registry_reference=reference);return result
 
 def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='operation',required=True)
@@ -255,11 +255,11 @@ def main():
     a=sub.add_parser('restore-archive');a.add_argument('--archive',required=True);a.add_argument('--metadata',required=True)
     a=sub.add_parser('probe');a.add_argument('--image',default='tdesktop:centos_env');a.add_argument('--source',required=True);a.add_argument('--output',required=True)
     a=sub.add_parser('publish');a.add_argument('--output',required=True)
-    a=sub.add_parser('restore-registry');a.add_argument('--output')
+    a=sub.add_parser('restore-registry');a.add_argument('--output');a.add_argument('--verify-remote',action='store_true')
     a=p.parse_args()
     if a.operation=='probe':result=probe(a.image,a.source,a.output)
     elif a.operation=='publish':result=publish(a.output)
-    elif a.operation=='restore-registry':result=restore_registry()
+    elif a.operation=='restore-registry':result=restore_registry(a.verify_remote)
     elif a.operation=='inspect':result=inspect(a.image)
     elif a.operation=='backup':result=backup(a.image,a.output)
     elif a.operation=='restore-archive':result=restore_archive(a.archive,a.metadata)

@@ -31,7 +31,11 @@ jobs:
             publish|restore-registry) ;;
             *) exit 2 ;;
           esac
-          python3 scripts/toolchain.py "$TOOLCHAIN_OPERATION" --output "$RUNNER_TEMP/toolchain-publication.json"
+          if [ "$TOOLCHAIN_OPERATION" = restore-registry ]; then
+            python3 scripts/toolchain.py restore-registry --verify-remote --output "$RUNNER_TEMP/toolchain-publication.json"
+          else
+            python3 scripts/toolchain.py publish --output "$RUNNER_TEMP/toolchain-publication.json"
+          fi
       - name: Preserve registry digest evidence (never credentials or product data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

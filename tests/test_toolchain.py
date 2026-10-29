@@ -65,3 +65,11 @@ class CompatibilityTests(unittest.TestCase):
         self.assertTrue(toolchain.compatible({'versions':{'gcc':'15.2.1','qt':'6.11.2'}},recipe))
         with self.assertRaises(ValueError):toolchain.compatible({'versions':{'gcc':'15.3.0','qt':'6.11.2'}},recipe)
         with self.assertRaises(ValueError):toolchain.compatible({'versions':{'gcc':'15.2.1','qt':'6.12.0'}},recipe)
+
+class RegistryRecoveryTests(unittest.TestCase):
+    def test_explicit_remote_verification_does_not_accept_a_cached_only_result(self):
+        from unittest.mock import patch,Mock
+        lock={'image_id':'sha256:'+'1'*64,'config_digest':'sha256:'+'2'*64,'registry_reference':'invalid-registry'}
+        with patch.object(Path,'read_text',return_value=json.dumps(lock)),patch.object(toolchain.subprocess,'run',return_value=Mock(returncode=0)):
+            self.assertEqual(toolchain.restore_registry()['status'],'already_cached')
+            with self.assertRaises(ValueError):toolchain.restore_registry(verify_remote=True)
