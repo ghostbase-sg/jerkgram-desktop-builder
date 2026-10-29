@@ -2,6 +2,10 @@ name: Explicit toolchain retention
 on:
   workflow_dispatch:
   workflow_call:
+    inputs:
+      operation:
+        type: string
+        default: publish
 permissions:
   contents: read
   packages: write
@@ -20,9 +24,14 @@ jobs:
       - name: Tests and inspect/publish the already restored pinned image
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TOOLCHAIN_OPERATION: ${{ inputs.operation || 'publish' }}
         run: |
           python3 -m unittest discover -s tests -q
-          python3 scripts/toolchain.py publish --output "$RUNNER_TEMP/toolchain-publication.json"
+          case "$TOOLCHAIN_OPERATION" in
+            publish|restore-registry) ;;
+            *) exit 2 ;;
+          esac
+          python3 scripts/toolchain.py "$TOOLCHAIN_OPERATION" --output "$RUNNER_TEMP/toolchain-publication.json"
       - name: Preserve registry digest evidence (never credentials or product data)
         if: always()
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02

@@ -8,6 +8,11 @@ on:
         description: Publish an already restored pinned toolchain (trusted local runner only)
         type: boolean
         default: false
+      toolchain_operation:
+        description: Explicit retention operation
+        type: choice
+        options: [publish, restore-registry]
+        default: publish
 permissions:
   contents: read
 concurrency:
@@ -47,3 +52,5 @@ jobs:
       contents: read
       packages: write
     uses: ./.github/workflows/toolchain-publish.yml
+    with:
+      operation: ${{ inputs.toolchain_operation || 'publish' }}

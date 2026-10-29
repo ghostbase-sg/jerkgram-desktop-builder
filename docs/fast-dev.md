@@ -92,3 +92,22 @@ dbus-run-session -- /usr/bin/python3 scripts/runtime_dev.py \
 ```
 
 Run a second independent private-bus invocation with `--platform wayland` and new root/evidence. The helper checks UI/process, own default profile/D-Bus and disabled update application; it does not claim authenticated Telegram behavior or redo the completed D1B coexistence campaign.
+
+### Private GHCR without a package PAT
+
+If the retained GHCR package is private and local CLI lacks package scopes, use the trusted Actions token through an existing official one-job runner installation. This needs the existing repository-authorized `gh` login, not a new package PAT. Commit/push the exact reviewed builder branch first.
+
+```sh
+python3 scripts/toolchain_actions.py start --operation restore-registry \
+  --runner-dir /home/pixi/Projects/Jerkgram/Desktop/d1-ephemeral-runner \
+  --evidence /path/to/new/recovery-runner-evidence
+```
+
+This dispatches the already registered `linux-preflight.yml` with manual retention selected, calling the dedicated toolchain job on this branch. It pulls/checks the pinned toolchain; it cannot trigger product compilation or access API Secrets. The ephemeral listener survives chat/tool interruptions and accepts one job. Inspect Actions completion and then:
+
+```sh
+python3 scripts/toolchain_actions.py cleanup --state /path/to/new/recovery-runner-evidence/runner.json
+python3 scripts/toolchain.py inspect
+```
+
+The same helper with `--operation publish` creates the versioned registry copy once. It refuses existing runner registrations, an uncommitted/unpushed workflow or arbitrary operations. Runner registration and Actions package tokens are not printed or stored in builder/evidence. Cleanup verifies removal of registration credential files. Do not run untrusted branch code on this runner.
