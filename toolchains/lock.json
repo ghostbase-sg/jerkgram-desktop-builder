@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "upstream_commit": "6fed91ffab9861771a75f29df65031b3c80b6941",
+  "image_id": "sha256:8a1b4c81f9d09e148df60f7c9819c2a4b10aa34a5c02bef8307c2001d5f1bf07",
+  "config_digest": "sha256:ce456fd48f862daee24de5b8cfa78df5f50ece9597fdf2c879f7e88e426744bc",
+  "recipe_sha256": "e779ea52d5a7e7949535bda49f66298464a3939d646b9c717896df2cfc5a96a1",
+  "rendered_sha256": "b54d51e560d202d78552229d9f34c319a9a563e92ca7e4061556f6a6d759d67d",
+  "archive_name": "tdesktop-v7.3.1-8a1b4c81f9d0.tar.zst",
+  "archive_sha256": "4972e808425a22c22d1a8baf9b9b6c9159383c03b192afa2eeaa9f283b606c14",
+  "archive_bytes": 10724587066,
+  "registry_reference": null,
+  "versions": {
+    "gcc": "15.2.1",
+    "compiler": "g++ (GCC) 15.2.1 20260123 (Red Hat 15.2.1-7)",
+    "cmake": "cmake version 3.26.5",
+    "ninja": "1.13.2.git.kitware.jobserver-pipe-1",
+    "qt": "6.11.2",
+    "lld": "LLD 21.1.8 (compatible with GNU linkers)",
+    "flags": {
+      "CC": "ccache gcc",
+      "CXX": "ccache g++",
+      "CFLAGS": "-g -gdwarf64 -gz -O3 -flto=auto -ffat-lto-objects -pipe -fPIC -fno-strict-aliasing -fexceptions -fasynchronous-unwind-tables -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -fhardened -Wno-hardened",
+      "CXXFLAGS": "-g -gdwarf64 -gz -O3 -flto=auto -ffat-lto-objects -pipe -fPIC -fno-strict-aliasing -fexceptions -fasynchronous-unwind-tables -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer -fhardened -Wno-hardened",
+      "LDFLAGS": "-static-libstdc++ -static-libgcc -static-libasan -pthread -Wl,--push-state,--no-as-needed,-ldl,--pop-state -Wl,--as-needed -Wl,-z,muldefs",
+      "AR": "gcc-ar",
+      "RANLIB": "gcc-ranlib"
+    },
+    "source_mount_empty": true
+  }
+}
