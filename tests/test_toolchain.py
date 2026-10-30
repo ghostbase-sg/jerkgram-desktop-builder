@@ -89,3 +89,9 @@ class OfficialQtInspectionTests(unittest.TestCase):
             return versions[args[0]]+'\n'
         with patch.object(toolchain.subprocess,'check_output',side_effect=execute):
             self.assertEqual(toolchain.inspect('pinned')['versions']['qt'],'6.11.2')
+
+class DefaultRecoveryRoutingTests(unittest.TestCase):
+    def test_missing_image_never_starts_a_dependency_rebuild(self):
+        from unittest.mock import patch,Mock
+        with tempfile.TemporaryDirectory() as d,patch.object(toolchain.subprocess,'run',return_value=Mock(returncode=1)),patch.object(Path,'read_text',return_value=json.dumps({'image_id':'sha256:'+'1'*64})):
+            with self.assertRaises(ValueError):toolchain.restore_pinned(Path(d))

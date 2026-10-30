@@ -37,7 +37,8 @@ jobs:
       - name: Restore pinned toolchain only if absent
         env:
           GHCR_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: python3 scripts/toolchain.py restore-registry
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: python3 scripts/toolchain.py restore --evidence "$RUNNER_TEMP/toolchain-recovery"
       - name: Explicit production compile and configuration verification
         env:
           JERKGRAM_SOURCE: ${{ inputs.source }}

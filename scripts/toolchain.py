@@ -258,17 +258,30 @@ def restore_registry(verify_remote=False):
     if result['image_id']!=expected:raise ValueError('Pulled wrong image')
     subprocess.run(['docker','tag',expected,'tdesktop:centos_env'],check=True);result.update(status='remote_digest_pulled_and_verified',registry_reference=reference);return result
 
+def restore_pinned(evidence):
+    lock=json.loads((ROOT/'toolchains/lock.json').read_text());expected=lock['image_id']
+    if subprocess.run(['docker','image','inspect',expected],stdout=subprocess.DEVNULL,stderr=subprocess.DEVNULL).returncode==0:
+        return {'status':'already_cached','image_id':expected}
+    if lock.get('registry_reference'):return restore_registry()
+    if lock.get('archive_release'):
+        import archive_release
+        evidence=Path(evidence).resolve();evidence.mkdir(parents=True,exist_ok=True)
+        return archive_release.recover(evidence/'recovery.json',destination=evidence/lock['archive_name'])
+    raise ValueError('No verified remote recovery pin; no dependency rebuild is started')
+
 def main():
     p=argparse.ArgumentParser();sub=p.add_subparsers(dest='operation',required=True)
     b=sub.add_parser('rebuild');b.add_argument('--source',required=True);b.add_argument('--evidence',required=True);b.add_argument('--renderer-python',default=sys.executable);b.add_argument('--execute',action='store_true')
     i=sub.add_parser('inspect');i.add_argument('--image',default='tdesktop:centos_env')
     a=sub.add_parser('backup');a.add_argument('--image',default='tdesktop:centos_env');a.add_argument('--output',required=True)
     a=sub.add_parser('restore-archive');a.add_argument('--archive',required=True);a.add_argument('--metadata',required=True)
+    a=sub.add_parser('restore');a.add_argument('--evidence',required=True)
     a=sub.add_parser('probe');a.add_argument('--image',default='tdesktop:centos_env');a.add_argument('--source',required=True);a.add_argument('--output',required=True)
     a=sub.add_parser('publish');a.add_argument('--output',required=True)
     a=sub.add_parser('restore-registry');a.add_argument('--output');a.add_argument('--verify-remote',action='store_true')
     a=p.parse_args()
-    if a.operation=='probe':result=probe(a.image,a.source,a.output)
+    if a.operation=='restore':result=restore_pinned(a.evidence)
+    elif a.operation=='probe':result=probe(a.image,a.source,a.output)
     elif a.operation=='publish':result=publish(a.output)
     elif a.operation=='restore-registry':result=restore_registry(a.verify_remote)
     elif a.operation=='inspect':result=inspect(a.image)
