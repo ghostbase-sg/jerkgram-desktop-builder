@@ -34,3 +34,11 @@ class ArchiveReleaseTests(unittest.TestCase):
             info=ar.ensure_release('toolchain-v7.3.1-123456789abc','a'*40)
             self.assertEqual(info['id'],42);self.assertEqual(lookup.call_count,1)
             self.assertEqual(create.call_args.kwargs['method'],'POST')
+    def test_failed_upload_does_not_submit_all_eighty_chunks(self):
+        import threading
+        started=[];lock=threading.Lock()
+        def upload(n):
+            with lock:started.append(n)
+            if n==0:raise ValueError('transport failure')
+        with self.assertRaises(ValueError):ar.run_bounded_upload(upload,range(80))
+        self.assertLessEqual(len(started),3)

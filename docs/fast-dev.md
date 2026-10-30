@@ -6,7 +6,7 @@ Active source: `/home/pixi/Projects/Jerkgram/Desktop/telegram-desktop-d1`.
 Builder: `/home/pixi/Projects/Jerkgram/Desktop/jerkgram-desktop-builder`.
 Upstream v7.3.1 / `6fed91ffab9861771a75f29df65031b3c80b6941`; D1B builder base `891defe6bc4c187dd61b97386e4b426f856a7b91`.
 
-This milestone changes infrastructure only. The measured report will distinguish restoration/bootstrap from ordinary incremental work; until those runs finish, no performance claim is made. See `fast-dev-progress.md`.
+This milestone changes infrastructure only. Bootstrap, five incremental cases, source restoration and X11/Wayland runtime are measured in [the report](fast-dev-report.md). Local archive recovery is proven. Remote retention remains blocked by the current upload transport; do not mistake an empty draft or helper code for a completed remote backup.
 
 ## Daily development
 
@@ -47,22 +47,40 @@ API Secrets must be supplied securely for a new production configuration. Existi
 
 ## Disaster recovery
 
-The primary recovery reference belongs in `toolchains/lock.json`: own versioned GHCR image plus immutable manifest digest, native config digest and daemon image ID. Do not recover from a mutable `latest` tag.
-
-```sh
-python3 scripts/toolchain.py restore-registry
-python3 scripts/toolchain.py inspect
-```
-
-The helper pulls only when absent and checks identity before continuing. A retained image needs no dependency rebuild. The second copy is a checked `docker save` zstd archive outside Docker:
+Current proven recovery is the checked archive outside Docker. Its SHA256, native image/config IDs and filename are committed in `toolchains/lock.json`. It survives Docker image/cache pruning. Remote GHCR push failed twice with connection resets; GitHub Releases uploads also timed out. No verified remote pin is populated yet. The archive is on the same disk, so it does not cover disk/device loss.
 
 ```sh
 python3 scripts/toolchain.py restore-archive \
-  --archive /path/to/retained-toolchain.tar.zst \
-  --metadata /path/to/retained-toolchain.tar.zst.json
+  --archive /home/pixi/Projects/Jerkgram/Desktop/toolchain-backups/tdesktop-v7.3.1-8a1b4c81f9d0.tar.zst \
+  --metadata /home/pixi/Projects/Jerkgram/Desktop/toolchain-backups/tdesktop-v7.3.1-8a1b4c81f9d0.tar.zst.json
+python3 scripts/toolchain.py inspect
 ```
 
-The archive path and publication/digest acceptance are recorded in the final measurement report. Do not assume retention is complete merely because helper scripts exist. Archive recovery verifies the outer checksum, image identity and every native layer before loading. Docker's daemon ID may identify an OCI index rather than the native config; both are tracked.
+Actual `docker load` from this checked archive succeeded and returned the exact pinned image without deleting the installed copy. Recovery verifies archive SHA256, image identity and every native layer. Docker daemon IDs can name an OCI manifest/index rather than a native config; both are tracked. Continuing the existing DEV tree needs no dependency/application rebuild after this restore.
+
+The generic remote router is:
+
+```sh
+python3 scripts/toolchain.py restore --evidence /path/to/new/toolchain-recovery
+```
+
+It returns immediately if the pinned image is already cached. If missing, it selects only an actually verified GHCR or archive-release pin and fails closed when neither exists. It never launches a dependency rebuild. **Until remote retention is complete, use the local archive command above after a prune.**
+
+Prepared remote archive fallback (requires working GitHub uploads):
+
+```sh
+python3 scripts/archive_release.py publish --archive /path/to/checked-toolchain.tar.zst \
+  --output /path/to/new/publication.json
+```
+
+This uses an infrastructure prerelease in the builder repo,128MiB chunks, at most two in flight, server-side SHA256 checks, a pinned manifest and no package PAT. The incomplete draft is unpublished. After a successful publication, commit its verified manifest reference under `archive_release` in the lock before using:
+
+```sh
+python3 scripts/archive_release.py recover --archive /path/to/new/toolchain.tar.zst \
+  --output /path/to/new/recovery.json
+```
+
+`--verify-only` downloads/hashes the full remote archive with a bounded disposable spool. It must pass before claiming remote recovery. The actual successful remote publication/recovery has **not** happened on this network.
 
 If neither image nor archive is available, the pinned upstream recipe can rebuild dependencies:
 
@@ -93,9 +111,9 @@ dbus-run-session -- /usr/bin/python3 scripts/runtime_dev.py \
 
 Run a second independent private-bus invocation with `--platform wayland` and new root/evidence. The helper checks UI/process, own default profile/D-Bus and disabled update application; it does not claim authenticated Telegram behavior or redo the completed D1B coexistence campaign.
 
-### Private GHCR without a package PAT
+### Optional future private GHCR retention without a package PAT
 
-If the retained GHCR package is private and local CLI lacks package scopes, use the trusted Actions token through an existing official one-job runner installation. This needs the existing repository-authorized `gh` login, not a new package PAT. Commit/push the exact reviewed builder branch first.
+If a future retained GHCR package is private and local CLI lacks package scopes, use the trusted Actions token through an existing official one-job runner installation. This needs the existing repository-authorized `gh` login, not a new package PAT. Commit/push the exact reviewed builder branch first.
 
 ```sh
 python3 scripts/toolchain_actions.py start --operation restore-registry \

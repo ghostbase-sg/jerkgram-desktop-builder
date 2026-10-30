@@ -27,3 +27,5 @@ Critical retained state:
 Rebuildable caches (not automatically removed): BuildKit intermediate layers/source downloads and ccache. Their loss should not change source policy, but costs dependency recompilation/network traffic if image recovery is unavailable. Removing the image is only safe once an independently verified recovery copy exists; removing build state is a separate, expensive decision. Registry retention does not back up application objects or API configuration.
 
 No prune/clean/delete operation is part of this milestone. Only temporary test fixtures and an independently verified stale DNF metadata PID lock were removed. The final report records actual Docker/image/archive/DEV sizes, not an estimate.
+
+Measured after fast-dev bootstrap: root247G used /228G available; active D1 tree52G, checked archive10G, Docker images30.2GB and retained BuildKit volume53.4GB. DEV bootstrap added12,326,957,056 allocated bytes (~11.48GiB). No additional40GB checkout. Remote uploads failed on this network, so the checked local archive is currently the proven image recovery copy; do not delete/move it casually or claim disk-loss coverage.

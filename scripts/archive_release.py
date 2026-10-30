@@ -81,6 +81,20 @@ def ensure_release(tag,head):
     notes='Pinned upstream Linux dependencies only; no product source/output/profiles/API credentials. Infrastructure retention, not a product release. Recover with the builder lock and scripts/archive_release.py; verify every SHA256 before loading.'
     return api('repos/'+REPO+'/releases',method='POST',body={'tag_name':tag,'target_commitish':head,'name':'Pinned Linux toolchain v7.3.1 '+tag.rsplit('-',1)[-1],'body':notes,'draft':True,'prerelease':True,'make_latest':'false'})
 
+def run_bounded_upload(fn,items):
+    iterator=iter(items)
+    with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:
+        pending=set()
+        for _ in range(2):
+            item=next(iterator,None)
+            if item is not None:pending.add(pool.submit(fn,item))
+        while pending:
+            done,pending=concurrent.futures.wait(pending,return_when=concurrent.futures.FIRST_COMPLETED)
+            for future in done:future.result()
+            for _ in done:
+                item=next(iterator,None)
+                if item is not None:pending.add(pool.submit(fn,item))
+
 def publish(archive,output):
     archive=Path(archive).resolve();output=Path(output).resolve();lock=json.loads((ROOT/'toolchains/lock.json').read_text());value=plan(archive,lock['image_id'])
     if value['archive_sha256']!=lock['archive_sha256']:raise ValueError('Archive is not the pinned checked backup')
@@ -95,10 +109,10 @@ def publish(archive,output):
             else:
                 with tempfile.TemporaryDirectory(prefix='chunk-',dir=temp) as chunk:
                     path=Path(chunk)/part['name'];spool(archive,part,path)
-                    subprocess.run([GH,'release','upload',tag,str(path),'--repo',REPO],check=True)
+                    subprocess.run([GH,'release','upload',tag,str(path),'--repo',REPO],check=True,timeout=180)
             with mutex:
                 done.append(part['name']);output.write_bytes(encoded({'status':'uploading','tag':tag,'complete_parts':len(done),'parts':len(value['parts']),'started':started}))
-        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as pool:list(pool.map(upload,value['parts']))
+        run_bounded_upload(upload,value['parts'])
         m={'name':MANIFEST,'bytes':manifest.stat().st_size,'sha256':sha(manifest)}
         if MANIFEST in existing:
             if not asset_matches(existing[MANIFEST],m):raise ValueError('Existing recovery manifest differs')
@@ -120,7 +134,7 @@ def recover(output,verify_only=False,destination=None):
     with tempfile.TemporaryDirectory(prefix='jerkgram-toolchain-download-') as temp:
         temp=Path(temp)
         def download(name):
-            subprocess.run([GH,'release','download',pin['tag'],'--repo',REPO,'--pattern',name,'--dir',str(temp)],check=True);return temp/name
+            subprocess.run([GH,'release','download',pin['tag'],'--repo',REPO,'--pattern',name,'--dir',str(temp)],check=True,timeout=180);return temp/name
         manifest=download(MANIFEST)
         if sha(manifest)!=pin['manifest_sha256']:raise ValueError('Remote manifest differs from committed pin')
         value=json.loads(manifest.read_text());validate(value)
