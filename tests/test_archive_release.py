@@ -22,3 +22,9 @@ class ArchiveReleaseTests(unittest.TestCase):
         part={'name':'part-0000','bytes':4,'sha256':'a'*64}
         self.assertTrue(ar.asset_matches({'name':'part-0000','size':4,'digest':'sha256:'+'a'*64},part))
         self.assertFalse(ar.asset_matches({'name':'part-0000','size':4,'digest':'sha256:'+'b'*64},part))
+    def test_transient_api_timeout_is_bounded_and_retried(self):
+        import subprocess
+        from unittest.mock import patch
+        error=subprocess.CalledProcessError(1,['gh','api'],stderr=b'TLS handshake timeout')
+        with patch.object(ar.subprocess,'check_output',side_effect=[error,b'[]']) as call,patch.object(ar.time,'sleep'):
+            self.assertEqual(ar.api('repos/example/releases'),[]);self.assertEqual(call.call_count,2)

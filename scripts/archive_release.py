@@ -10,7 +10,13 @@ MANIFEST='toolchain-archive-manifest.json'
 
 def sha(p):return toolchain.sha(p)
 def encoded(value):return (json.dumps(value,sort_keys=True,indent=2)+'\n').encode()
-def api(path):return json.loads(subprocess.check_output([GH,'api',path]))
+def api(path):
+    for attempt in range(3):
+        try:return json.loads(subprocess.check_output([GH,'api',path],stderr=subprocess.PIPE))
+        except subprocess.CalledProcessError as exc:
+            message=(exc.stderr or b'').decode(errors='replace')
+            if attempt==2 or not any(x in message for x in ('TLS handshake timeout','connection reset','unexpected EOF','HTTP 502','HTTP 503','HTTP 504')):raise
+            time.sleep(attempt+1)
 def valid_name(name):
     if Path(name).name!=name or name in ('','.','..'):raise ValueError('Unsafe archive asset name')
     return name
@@ -100,7 +106,7 @@ def publish(archive,output):
 
 def recover(output,verify_only=False,destination=None):
     lock=json.loads((ROOT/'toolchains/lock.json').read_text());pin=lock['archive_release']
-    if pin['repository']!=REPO or not re.fullmatch('toolchain-v7\.3\.1-[a-f0-9]{12}',pin['tag']):raise ValueError('Unexpected recovery destination')
+    if pin['repository']!=REPO or not re.fullmatch(r'toolchain-v7\.3\.1-[a-f0-9]{12}',pin['tag']):raise ValueError('Unexpected recovery destination')
     started=time.time();destination=Path(destination).resolve() if destination else None
     if not verify_only and destination is None:raise ValueError('New output archive path required')
     if destination:destination.parent.mkdir(parents=True,exist_ok=True)
