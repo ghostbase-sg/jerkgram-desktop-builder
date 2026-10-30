@@ -57,3 +57,13 @@ class CMakeDevFixtureTests(unittest.TestCase):
             subprocess.run(['cmake','--build',str(out)],check=True,capture_output=True)
             again=subprocess.run(['cmake','--build',str(out)],check=True,capture_output=True,text=True)
             self.assertIn('no work to do',again.stdout.lower())
+
+class NinjaLogMeasurementTests(unittest.TestCase):
+    def test_log_compaction_does_not_hide_new_compile_or_link_records(self):
+        with tempfile.TemporaryDirectory() as d:
+            p=Path(d);old='10\t20\t100\told.cpp.o\ta\n';new='0\t8\t200\tleaf.cpp.o\tb\n8\t25\t201\tJerkgram\tc\n'
+            (p/'.ninja_log').write_text('# ninja log v7\n'+old*100)
+            checkpoint=bp.ninja_snapshot(p)
+            (p/'.ninja_log').write_text('# ninja log v7\n'+old+new)
+            records=bp.ninja_records(p,checkpoint)
+            self.assertEqual([r['output'] for r in records],['leaf.cpp.o','Jerkgram'])

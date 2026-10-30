@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Explicit dev-fast/production routing. Production never runs by default."""
-import argparse,hashlib,json,os,re,shlex,shutil,subprocess,threading,time
+import argparse,collections,hashlib,json,os,re,shlex,shutil,subprocess,threading,time
 from pathlib import Path
 import identity,release
 
@@ -71,12 +71,16 @@ def configure(source,evidence):
     if sha(cache)!=before:raise ValueError('Production cache changed')
     result=receipt(source,image_id());(out/'jerkgram-profile.json').write_text(json.dumps(result,indent=2)+'\n');(evidence/'config-verified.json').write_text(json.dumps(result,indent=2)+'\n');return result
 
-def ninja_records(out,offset):
-    path=out/'.ninja_log'
+def ninja_snapshot(out):
+    path=Path(out)/'.ninja_log'
+    return collections.Counter(path.read_text().splitlines()) if path.exists() else collections.Counter()
+
+def ninja_records(out,before):
+    path=Path(out)/'.ninja_log'
     if not path.exists():return []
-    with path.open('rb') as f:f.seek(offset);lines=f.read().decode().splitlines()
-    records=[]
-    for line in lines:
+    seen=before.copy();records=[]
+    for line in path.read_text().splitlines():
+        if seen[line]:seen[line]-=1;continue
         a=line.split('\t')
         if len(a)==5 and a[0].isdigit():records.append({'start_ms':int(a[0]),'end_ms':int(a[1]),'output':a[3]})
     return records
@@ -90,7 +94,7 @@ def build(source,evidence,jobs=2,edits=()):
     if (evidence/'build.json').exists():raise ValueError('Use a new evidence directory; old evidence is preserved')
     production={str(p):sha(p) for p in (source/'out/CMakeCache.txt',source/'out/Release/Jerkgram') if p.exists()}
     allocated_before=int(subprocess.check_output(['du','-s','-B1',str(out)],text=True).split()[0])
-    log=out/'.ninja_log';offset=log.stat().st_size if log.exists() else 0;disk=shutil.disk_usage(source);summary={};stop=threading.Event();thread=threading.Thread(target=release.monitor,args=(stop,evidence/'memory.jsonl',summary),daemon=True);thread.start();start=time.time()
+    checkpoint=ninja_snapshot(out);disk=shutil.disk_usage(source);summary={};stop=threading.Event();thread=threading.Thread(target=release.monitor,args=(stop,evidence/'memory.jsonl',summary),daemon=True);thread.start();start=time.time()
     result={'status':'failed','profile':'dev-fast','lto':False,'compile_jobs':jobs,'started':requested,'preflight_seconds':start-requested,'declared_edits':{p:sha(source/p) for p in edits},'image_id':image_id()}
     try:
         with (evidence/'compile.log').open('w') as f:
@@ -102,7 +106,7 @@ def build(source,evidence,jobs=2,edits=()):
         if any(sha(Path(k))!=v for k,v in production.items()):raise ValueError('Production cache/binary changed')
         binary=out/'Jerkgram';result.update(status='compiled',binary=str(binary),binary_bytes=binary.stat().st_size,binary_sha256=sha(binary),production_preserved=True)
     finally:
-        stop.set();thread.join();records=ninja_records(out,offset);compiles=[x for x in records if x['output'].endswith('.o')];links=[x for x in records if x['output']=='Jerkgram']
+        stop.set();thread.join();records=ninja_records(out,checkpoint);compiles=[x for x in records if x['output'].endswith('.o')];links=[x for x in records if x['output']=='Jerkgram']
         text=(evidence/'compile.log').read_text(errors='replace');operations=max([int(x) for x in re.findall(r'\[(\d+)/\d+\]',text)]+[0])
         result.update(duration_seconds=time.time()-requested,ninja_wall_seconds=time.time()-start,finished=time.time(),resources=summary,build_tree_delta_bytes=int(subprocess.check_output(['du','-s','-B1',str(out)],text=True).split()[0])-allocated_before,disk_used_delta_bytes=disk.free-shutil.disk_usage(source).free,operations=operations,outputs_updated=len(records),recompiled=len(compiles),compile_span_seconds=(max(x['end_ms'] for x in compiles)-min(x['start_ms'] for x in compiles))/1000 if compiles else 0,link_seconds=sum((x['end_ms']-x['start_ms'])/1000 for x in links),records=records)
         (evidence/'build.json').write_text(json.dumps(result,indent=2)+'\n')

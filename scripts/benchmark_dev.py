@@ -45,12 +45,13 @@ def benchmark(source,evidence,jobs=2):
         status='FAILED'
         raise
     finally:
-        restored=False
+        restored=False;restoration_error=None
         try:
             bp.verify_source(source);restored=True
-        except Exception:
-            status='FAILED'
+        except Exception as exc:
+            status='FAILED';restoration_error=exc
         (evidence/'summary.json').write_text(json.dumps({'status':status,'results':results,'source_restored':restored},indent=2)+'\n')
+        if restoration_error is not None:raise ValueError('Final source restoration verification failed') from restoration_error
     print(json.dumps({'status':status,'cases':{k:{f:v[f] for f in ('duration_seconds','recompiled','link_seconds','build_tree_delta_bytes')} for k,v in results.items()}},indent=2))
     return results
 

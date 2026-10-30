@@ -24,3 +24,16 @@ class BenchmarkSafetyTests(unittest.TestCase):
             import json
             report=json.loads((evidence/'summary.json').read_text())
             self.assertEqual(report['status'],'FAILED');self.assertFalse(report['source_restored'])
+    def test_final_restoration_verification_failure_is_raised(self):
+        from unittest.mock import patch
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source=root/'source';source.mkdir()
+            for name in ('intro/intro_start.cpp','boxes/about_box.cpp','intro/intro_start.h','platform/linux/specific_linux.cpp'):
+                p=source/'Telegram/SourceFiles'/name;p.parent.mkdir(parents=True,exist_ok=True);p.write_text('// original\n')
+            calls=[0]
+            def verify(*args):
+                calls[0]+=1
+                if calls[0]==13:raise ValueError('Restoration drift')
+            values=[dict(duration_seconds=1,recompiled=n,link_seconds=1,build_tree_delta_bytes=0) for n in (0,1,2,2,1,1)]
+            with patch.object(bench.bp,'verify_source',side_effect=verify),patch.object(bench.bp,'build',side_effect=values):
+                with self.assertRaises(ValueError):bench.benchmark(source,root/'evidence')
