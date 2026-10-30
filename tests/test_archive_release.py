@@ -28,3 +28,9 @@ class ArchiveReleaseTests(unittest.TestCase):
         error=subprocess.CalledProcessError(1,['gh','api'],stderr=b'TLS handshake timeout')
         with patch.object(ar.subprocess,'check_output',side_effect=[error,b'[]']) as call,patch.object(ar.time,'sleep'):
             self.assertEqual(ar.api('repos/example/releases'),[]);self.assertEqual(call.call_count,2)
+    def test_release_creation_uses_returned_id_without_eventual_list_race(self):
+        from unittest.mock import patch
+        with patch.object(ar,'release',return_value=None) as lookup,patch.object(ar,'api',return_value={'id':42,'tag_name':'toolchain-v7.3.1-123456789abc'}) as create:
+            info=ar.ensure_release('toolchain-v7.3.1-123456789abc','a'*40)
+            self.assertEqual(info['id'],42);self.assertEqual(lookup.call_count,1)
+            self.assertEqual(create.call_args.kwargs['method'],'POST')

@@ -10,12 +10,14 @@ MANIFEST='toolchain-archive-manifest.json'
 
 def sha(p):return toolchain.sha(p)
 def encoded(value):return (json.dumps(value,sort_keys=True,indent=2)+'\n').encode()
-def api(path):
+def api(path,method='GET',body=None):
+    args=[GH,'api','--method',method,path]
+    if body is not None:args+=['--input','-']
     for attempt in range(3):
-        try:return json.loads(subprocess.check_output([GH,'api',path],stderr=subprocess.PIPE))
+        try:return json.loads(subprocess.check_output(args,input=encoded(body) if body is not None else None,stderr=subprocess.PIPE))
         except subprocess.CalledProcessError as exc:
             message=(exc.stderr or b'').decode(errors='replace')
-            if attempt==2 or not any(x in message for x in ('TLS handshake timeout','connection reset','unexpected EOF','HTTP 502','HTTP 503','HTTP 504')):raise
+            if method!='GET' or attempt==2 or not any(x in message for x in ('TLS handshake timeout','connection reset','unexpected EOF','HTTP 502','HTTP 503','HTTP 504')):raise
             time.sleep(attempt+1)
 def valid_name(name):
     if Path(name).name!=name or name in ('','.','..'):raise ValueError('Unsafe archive asset name')
@@ -73,16 +75,19 @@ def asset_matches(asset,part):return asset.get('name')==part['name'] and asset.g
 def release(tag):
     return next((r for r in api('repos/'+REPO+'/releases?per_page=100') if r['tag_name']==tag),None)
 
+def ensure_release(tag,head):
+    info=release(tag)
+    if info is not None:return info
+    notes='Pinned upstream Linux dependencies only; no product source/output/profiles/API credentials. Infrastructure retention, not a product release. Recover with the builder lock and scripts/archive_release.py; verify every SHA256 before loading.'
+    return api('repos/'+REPO+'/releases',method='POST',body={'tag_name':tag,'target_commitish':head,'name':'Pinned Linux toolchain v7.3.1 '+tag.rsplit('-',1)[-1],'body':notes,'draft':True,'prerelease':True,'make_latest':'false'})
+
 def publish(archive,output):
     archive=Path(archive).resolve();output=Path(output).resolve();lock=json.loads((ROOT/'toolchains/lock.json').read_text());value=plan(archive,lock['image_id'])
     if value['archive_sha256']!=lock['archive_sha256']:raise ValueError('Archive is not the pinned checked backup')
     tag='toolchain-v7.3.1-'+lock['image_id'][7:19];started=time.time()
     with tempfile.TemporaryDirectory(prefix='jerkgram-toolchain-upload-') as temp:
-        temp=Path(temp);manifest=temp/MANIFEST;manifest.write_bytes(encoded(value));info=release(tag)
-        if info is None:
-            notes=temp/'notes.md';notes.write_text('Pinned upstream Linux build dependencies only. No Jerkgram source, output, profiles or API credentials.\n\nThis is infrastructure retention, not a product release. Restore using the builder lock and scripts/archive_release.py; verify every SHA256 before loading.\n')
-            head=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip()
-            subprocess.run([GH,'release','create',tag,'--repo',REPO,'--draft','--prerelease','--latest=false','--target',head,'--title','Pinned Linux toolchain v7.3.1 '+lock['image_id'][7:19],'--notes-file',str(notes)],check=True);info=release(tag)
+        temp=Path(temp);manifest=temp/MANIFEST;manifest.write_bytes(encoded(value))
+        head=subprocess.check_output(['git','-C',str(ROOT),'rev-parse','HEAD'],text=True).strip();info=ensure_release(tag,head)
         existing={a['name']:a for a in api('repos/'+REPO+'/releases/'+str(info['id'])+'/assets?per_page=100')};done=[];mutex=threading.Lock()
         def upload(part):
             if part['name'] in existing:
