@@ -1,4 +1,5 @@
 import json,sys,tempfile,unittest
+from unittest import mock
 from pathlib import Path
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'scripts'))
 try:import build_profile as bp
@@ -21,6 +22,21 @@ class ProfileTests(unittest.TestCase):
             self.assertEqual(bp.directory(p,'dev-fast'),p/'out/dev-fast')
             (p/'out/dev-fast').symlink_to(p/'out')
             with self.assertRaises(ValueError):bp.directory(p,'dev-fast')
+
+    def test_directory_policy_rejects_drift_before_docker_or_writes(self):
+        original=bp.load()
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d);source=root/'source';source.mkdir()
+            (root/'D1_CONFIG.json').write_text((bp.ROOT/'D1_CONFIG.json').read_text())
+            for profile,bad in [('dev-fast','out'),('dev-fast','out/Release'),('dev-fast','out/other'),('production','out/dev-fast')]:
+                with self.subTest(profile=profile,directory=bad):
+                    value=json.loads(json.dumps(original));value[profile]['directory']=bad
+                    (root/'BUILD_PROFILES.json').write_text(json.dumps(value))
+                    with mock.patch.object(bp,'ROOT',root),mock.patch.object(bp,'image_id') as image:
+                        with self.assertRaisesRegex(ValueError,'directory policy'):bp.load()
+                        with self.assertRaisesRegex(ValueError,'directory policy'):bp.command(source,'configure')
+                        image.assert_not_called()
+                    self.assertFalse((source/'out').exists())
 
     def test_effective_dev_flags_reject_hidden_lto_and_updater(self):
         self.assertIsNotNone(bp)

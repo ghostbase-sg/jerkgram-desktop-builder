@@ -11,6 +11,7 @@ def sha(path):
 
 def load():
     value=json.loads((ROOT/'BUILD_PROFILES.json').read_text());prod=json.loads((ROOT/'D1_CONFIG.json').read_text())
+    if value['dev-fast']['directory']!='out/dev-fast' or value['production']['directory']!='out':raise ValueError('Invalid build directory policy')
     if value['schema']!=1 or value['dev-fast']['lto'] or not value['production']['lto']:raise ValueError('Invalid profile policy')
     if value['production']['link_flags']!=prod['release_link_flags'] or value['production']['cmake']!=prod['cmake']:raise ValueError('Production profile drift')
     if value['dev-fast']['configuration']!='Release' or value['dev-fast']['cmake']['DESKTOP_APP_DISABLE_AUTOUPDATE']!='ON':raise ValueError('Dev must be optimized/updater-disabled')
